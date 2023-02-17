@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const uri = process.env.DATABASE;
-mongoose.set("strictQuery",false)
+mongoose.set("strictQuery", false)
 mongoose.connect(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,

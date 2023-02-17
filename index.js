@@ -6,21 +6,23 @@ const bodyParser = require('body-parser');
 const app = express();
 
 dotenv.config({ path: './config.env' })
+require("./db/connection")
 
-require('./db/connection')
 
 app.use(cors());
 app.use(express.json());
 app.use(bodyParser.urlencoded(
-  { extended: true }
+  { extended: false }
 ))
-app.set("view engine", "ejs")
-
+// app.set("view engine", "ejs")
 
 
 app.get("/",async(req,res)=>{
   res.json("Congratulations BreakIN server made successfully")
 })
+
+app.use(require("./router/api"));
+
 
 const port = process.env.PORT || 5000;
 
