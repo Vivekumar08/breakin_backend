@@ -17,6 +17,7 @@ app.use(bodyParser.urlencoded(
 // app.set("view engine", "ejs")
 
 
+
 app.get("/",async(req,res)=>{
   res.json("Congratulations BreakIN server made successfully")
 })
