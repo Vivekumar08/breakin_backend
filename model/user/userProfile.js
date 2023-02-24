@@ -8,13 +8,27 @@ const userProfile = new mongoose.Schema({
     },
     Email: {
         type: String,
-        required: true
     },
     Password: {
         type: String,
         required: true
     },
-    resetPasswordToken: {
+    PhoneNumber:{
+        type:String
+    },
+    previousPasswd: {
+        type: [String],
+    },
+    profilePic: {
+        type: String,
+    },
+    previousPictures: {
+        type: [String],
+    },
+    location:{
+        type:String
+    },
+    resetPasswordOTP: {
         type: String,
         default: ""
     },

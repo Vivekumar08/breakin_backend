@@ -7,12 +7,11 @@ const app = express();
 
 dotenv.config({ path: './config.env' })
 require("./db/connection")
-require("./db/bucket")
 
 
 app.use(cors());
 app.use(express.json());
-// app.set("view engine", "ejs")
+app.set("view engine", "ejs")
 app.use(bodyParser.urlencoded(
   { extended: false }
 ))

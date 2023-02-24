@@ -14,7 +14,22 @@ const ownerProfile = new mongoose.Schema({
         type: String,
         required: true
     },
-    resetPasswordToken: {
+    PhoneNumber: {
+        type: String,
+    },
+    profilePic: {
+        type: String,
+    },
+    previousPictures: {
+        type: [String],
+    },
+    CoverPhoto: {
+        type: String,
+    },
+    previousCoverPhotos: {
+        type: [String],
+    },
+    resetPasswordOTP: {
         type: String,
         default: ""
     },
@@ -25,5 +40,5 @@ const ownerProfile = new mongoose.Schema({
 })
 
 
-const ownerP = mongoose.model('USER', ownerProfile);
+const ownerP = mongoose.model('OWNER', ownerProfile);
 module.exports = ownerP;
