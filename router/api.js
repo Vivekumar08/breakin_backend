@@ -18,6 +18,8 @@ const SuggestPlace = require("../model/user/suggestPlace");
 const HelpUser = require("../model/user/help");
 const FeedBackUser = require("../model/user/feedback");
 const MenuItemOwner = require("../model/owner/menu");
+const nodemailer = require("nodemailer");
+const listPlace = require("../model/owner/listPlace");
 
 const generatedOTPs = new Map();
 
@@ -125,11 +127,11 @@ router.post("/upload", upload.single("file"), (req, res) => {
 router.post("/tokenIsValid", async (req, res) => {
     try {
         const token = req.header("x-auth-token");
-        if (!token) return res.json(false);
+        if (!token) return res.status(204).json(false);
         const verified = jwt.verify(token, process.env.SECRET);
-        if (!verified) return res.json(false);
+        if (!verified) return res.status(201).json(false);
         const user = await userP.findById(verified.id);
-        if (!user) return res.json(false);
+        if (!user) return res.status(202).json(false);
         return res.json(true);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -145,9 +147,9 @@ router.get("/user/getdata", async (req, res) => {
 router.post("/user/registerWithEmail", async (req, res) => {
     try {
         const salt = await bcrypt.genSalt();
-        const { FullName, Email, Password } = req.body;;
+        const {FullName, Email, Password } = req.body;;
 
-        if (!FullName || !Email || !Password) {
+        if (!Email || !Password) {
             return res.status(400).json({ error: "Fill the complete form" });
         }
         if (Password.length < 5) return res.status(400).json({ msg: "The password needs to be at least 5 characters." })
@@ -165,9 +167,9 @@ router.post("/user/registerWithEmail", async (req, res) => {
 
         const savedUser = await user.save();
 
-        jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: ' 7 days' })
+        const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
 
-        res.status(200).json(token, savedUser)
+        res.status(200).json({ token, savedUser })
         // return res.status(200).json({ message: "Form filled Successfully " });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -201,9 +203,9 @@ router.post("/user/forgotEmail", auth, async (req, res) => {
 
 
                 const mailOptions = {
-                    from: ` "Recovery Email for Daulatram Admin" <${process.env.EMAIL_ADDRESS}>`,
+                    from: ` "Recovery Email from BreakIN" <${process.env.EMAIL_ADDRESS}>`,
                     to: `${Email}`,
-                    Subject: "OTP to Reset Password",
+                    subject: `BreakIN: OTP -${otp} to Reset Password`,
                     text: "You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n" +
                         "Please verify the following OTP, or paste this into our application to complete the process within 10 mins of receiving it:\n\n" +
                         `OTP: BreakIN- ${otp}\n\n` +
@@ -298,8 +300,12 @@ router.post("/user/loginWithEmail", async (req, res) => {
                 console.log("Invalid Credentials");
                 res.status(400).json({ msg: "Invalid Credentials." });
             } else {
-                const token = jwt.sign({ id: UserLogin._id }, process.env.SECRET, { expiresIn: '30 days' })
-                res.status(200).json({ token, UserLogin });
+                const token = jwt.sign({ id: UserLogin._id }, process.env.SECRET, { expiresIn: '30d' })
+                // res.status(200).json({ token, UserLogin });
+                // const token = jwt.sign({id: UserLogin._id},process.env.SECRET)
+                console.log(token)
+                res.status(200).header("x-auth-token",token).cookie(token).json({ token, UserLogin });
+
                 console.log("Signin Successful");
                 await UserLogin.save();
             }
@@ -315,8 +321,8 @@ router.post("/user/loginWithEmail", async (req, res) => {
 
 router.delete("/user/delete", auth, async (req, res) => {
     try {
-        const delete_user = await userP.findOneAndDelete({ _id: req.user });
-        res.send(delete_user + "User deleted");
+        const delete_user = await userP.findByIdAndDelete(req.user);
+        res.json(delete_user + "User deleted");
 
     } catch (error) {
         res.status(500).json({ error: error.message })
@@ -490,7 +496,7 @@ router.post("/owner/loginWithEmail", async (req, res) => {
 router.post("/owner/registerWithEmail", async (req, res) => {
     try {
         const salt = await bcrypt.genSalt();
-        const { FullName, Email, Password } = req.body;;
+        const { FullName, Email, Password } = req.body;
 
         if (!FullName || !Email || !Password) {
             return res.status(400).json({ error: "Fill the complete form" });
@@ -516,7 +522,7 @@ router.post("/owner/registerWithEmail", async (req, res) => {
     }
 });
 
-router.post("/user/forgotEmail", auth, async (req, res) => {
+router.post("/owner/forgotEmail", async (req, res) => {
     try {
         const { Email } = req.body;
         if (!Email) {
@@ -528,7 +534,7 @@ router.post("/user/forgotEmail", auth, async (req, res) => {
         } else {
             const otp = generateOTP(req.user)
             const up = await user.updateOne({
-                resetPasswordOTP: token,
+                resetPasswordOTP: otp,
                 resetPasswordExpires: Date.now() + 10 * 60 * 1000,
             });
             if (up) {
@@ -542,9 +548,9 @@ router.post("/user/forgotEmail", auth, async (req, res) => {
 
 
                 const mailOptions = {
-                    from: ` "Recovery Email for Daulatram Admin" <${process.env.EMAIL_ADDRESS}>`,
+                    from: ` "Recovery Email from BreakIN" <${process.env.EMAIL_ADDRESS}>`,
                     to: `${Email}`,
-                    Subject: "OTP to Reset Password",
+                    subject: `BreakIN: OTP - ${otp} to Reset Password`,
                     text: "You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n" +
                         "Please verify the following OTP, or paste this into our application to complete the process within 10 mins of receiving it:\n\n" +
                         `OTP: BreakIN- ${otp}\n\n` +
@@ -567,11 +573,11 @@ router.post("/user/forgotEmail", auth, async (req, res) => {
             }
         }
     } catch (err) {
-        console.log(" External err");
+        console.log(" External err",err);
     }
 });
 
-router.put("/user/updatePasswordViaEmail", auth, async (req, res) => {
+router.put("/owner/updatePasswordViaEmail", auth, async (req, res) => {
     try {
         // 
         const { Password } = req.body;
@@ -660,8 +666,22 @@ router.post("/owner/menuItems", auth, async (req, res) => {
 
 // Owner List Place
 router.post("/owner/listPlace", auth, upload.single("file"), async (req, res) => {
+    try {
     const { PlaceName, Address, OwnerName } = req.body;
     const { filename, mimetype } = req.file;
+
+        if (!PlaceName, !Address, !OwnerName) return res.json({msg:"We can not list a place without improper information."})
+        const user = new listPlace({
+            PlaceName, Address, OwnerName, document:filename,mimetype:mimetype
+        });
+
+        const savedUser = await user.save();
+        res.status(200).json({savedUser,msg:"Place listed successfully."})
+
+    } catch (error) {
+        
+    }
+
 
 
 })

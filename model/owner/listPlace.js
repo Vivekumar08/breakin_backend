@@ -17,6 +17,9 @@ const ownerPlace = new mongoose.Schema({
     document: {
         type: String,
     },
+    mimetype: {
+        type: String,
+    }
 })
 
 
