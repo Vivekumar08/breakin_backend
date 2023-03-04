@@ -11,7 +11,6 @@ const userProfile = new mongoose.Schema({
     },
     Password: {
         type: String,
-        required: true
     },
     PhoneNumber:{
         type:String

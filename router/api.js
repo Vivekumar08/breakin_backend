@@ -20,23 +20,9 @@ const FeedBackUser = require("../model/user/feedback");
 const MenuItemOwner = require("../model/owner/menu");
 const nodemailer = require("nodemailer");
 const listPlace = require("../model/owner/listPlace");
-
-const generatedOTPs = new Map();
-
-function generateOTP(id) {
-    let otp;
-
-    // Keep generating OTPs until we find one that hasn't been generated before
-    do {
-        otp = Math.floor(Math.random() * 9000) + 1000;
-    } while (generatedOTPs.has(otp));
-
-    // Add the generated OTP to the set
-    const expirationTime = Date.now() + 10 * 60 * 1000;
-    generatedOTPs.set(otp, expirationTime, id);
-
-    return otp;
-}
+const sendEmail = require("../utils/sendEmail");
+const { generateOTP, isOTPValid } = require("../utils/otpGenerator");
+const { sendOTPToSMS } = require("../utils/sendSMS");
 
 
 let bucket;
@@ -147,7 +133,7 @@ router.get("/user/getdata", async (req, res) => {
 router.post("/user/registerWithEmail", async (req, res) => {
     try {
         const salt = await bcrypt.genSalt();
-        const {FullName, Email, Password } = req.body;;
+        const { FullName, Email, Password } = req.body;;
 
         if (!Email || !Password) {
             return res.status(400).json({ error: "Fill the complete form" });
@@ -169,11 +155,39 @@ router.post("/user/registerWithEmail", async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
 
-        res.status(200).json({ token, savedUser })
+        res.status(200).cookie("token",token).json({ token, savedUser })
         // return res.status(200).json({ message: "Form filled Successfully " });
     } catch (err) {
         res.status(500).json({ error: err.message });
         console.log(err);
+    }
+});
+
+router.post("/user/registerWithNumber", async (req, res) => {
+    try {
+        const { FullName, PhoneNumber } = req.body;;
+
+        if (!PhoneNumber) {
+            return res.status(400).json({ error: "Fill the complete form" });
+        }
+        const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
+        if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
+        const otp = generateOTP(req.user)
+        console.log(otp)
+        const user = new userP({
+            FullName: FullName,
+            PhoneNumber,
+            resetPasswordOTP:otp
+        });
+        await user.save();
+        const code = sendOTPToSMS({ otp, PhoneNumber },res);
+        console.log(code)
+        // const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
+        // res.status(200).json({ token, savedUser })
+        // return res.status(200).json({ message: "Form filled Successfully " });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+        // console.log(err);
     }
 });
 
@@ -193,38 +207,11 @@ router.post("/user/forgotEmail", auth, async (req, res) => {
                 resetPasswordExpires: Date.now() + 10 * 60 * 1000,
             });
             if (up) {
-                const transporter = nodemailer.createTransport({
-                    service: "gmail",
-                    auth: {
-                        user: `${process.env.EMAIL_ADDRESS}`, // generated ethereal user
-                        pass: `${process.env.EMAIL_PSSWD}`, // generated ethereal password
-                    },
-                });
-
-
-                const mailOptions = {
-                    from: ` "Recovery Email from BreakIN" <${process.env.EMAIL_ADDRESS}>`,
-                    to: `${Email}`,
-                    subject: `BreakIN: OTP -${otp} to Reset Password`,
-                    text: "You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n" +
-                        "Please verify the following OTP, or paste this into our application to complete the process within 10 mins of receiving it:\n\n" +
-                        `OTP: BreakIN- ${otp}\n\n` +
-                        `This OTP is valid only upto 10 mins\n\n` +
-                        "If you did not request this, please ignore this email and your password will remain unchanged",
-                };
-
-                console.log("Sending email.....");
-
-                transporter.sendMail(mailOptions, (err, response) => {
-                    if (err) {
-                        console.log("There was an error: ", err);
-                    } else {
-                        console.log("There you Go: ", response);
-                        return res.status(200).json("Recovery email sent");
-                    }
-                });
+                sendEmail({ otp, Email })
+                return res.status(200).json("Recovery email sent");
             } else {
                 console.log("Unable to give token ");
+                res.status(401).json({ err: "Unable to give recovery otp" })
             }
         }
     } catch (err) {
@@ -237,19 +224,7 @@ router.put("/user/updatePasswordViaEmail", auth, async (req, res) => {
         // 
         const { Password } = req.body;
 
-        if (generatedOTPs.has(otp, id)) {
-            const expirationTime = generatedOTPs.get(otp);
-            const currentTime = Date.now();
-            if (id == req.user) {
-                if (expirationTime > currentTime) {
-                    return true;
-                } else {
-                    generatedOTPs.delete(otp);
-                }
-            } else {
-                generatedOTPs.delete(otp);
-            }
-        }
+        // isOTPValid()
 
         const details = await userP.findOne({
             _id: req.user,
@@ -304,7 +279,7 @@ router.post("/user/loginWithEmail", async (req, res) => {
                 // res.status(200).json({ token, UserLogin });
                 // const token = jwt.sign({id: UserLogin._id},process.env.SECRET)
                 console.log(token)
-                res.status(200).header("x-auth-token",token).cookie(token).json({ token, UserLogin });
+                res.status(200).header("x-auth-token", token).cookie(token).json({ token, UserLogin });
 
                 console.log("Signin Successful");
                 await UserLogin.save();
@@ -468,7 +443,7 @@ router.post("/owner/loginWithEmail", async (req, res) => {
                 .json({ error: "Fill the Admin Login Form Properly" });
         }
 
-        const UserLogin = await userP.findOne({ Email: Email });
+        const UserLogin = await ownerP.findOne({ Email: Email });
         //   const UserLogin = await User.findOne({ FullName: FullName_ })
 
         if (UserLogin) {
@@ -479,7 +454,7 @@ router.post("/owner/loginWithEmail", async (req, res) => {
                 res.status(400).json({ msg: "Invalid Credentials." });
             } else {
                 const token = jwt.sign({ id: UserLogin._id }, process.env.SECRET)
-                res.status(200).json({ token, UserLogin });
+                res.status(200).cookie("token",token).json({ token, UserLogin });
                 console.log("Signin Successful");
                 await UserLogin.save();
             }
@@ -514,13 +489,40 @@ router.post("/owner/registerWithEmail", async (req, res) => {
             Password: hashedPassword,
         });
         const savedUser = await user.save();
-        res.status(200).json(savedUser)
+        const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
+        res.status(200).cookie("token",token).json({ token, savedUser })
+
         // return res.status(200).json({ message: "Form filled Successfully " });
     } catch (err) {
         res.status(500).json({ error: err.message });
         console.log(err);
     }
 });
+
+router.post("/user/registerWithNumber", async (req, res) => {
+    try {
+        const salt = await bcrypt.genSalt();
+        const { FullName, PhoneNumber } = req.body;;
+
+        if (!PhoneNumber) {
+            return res.status(400).json({ error: "Fill the complete form" });
+        }
+        const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
+        if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
+        const user = new userP({
+            FullName: FullName,
+            PhoneNumber
+        });
+        const savedUser = await user.save();
+        const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
+        res.status(200).cookie("token",token).json({ token, savedUser })
+        // return res.status(200).json({ message: "Form filled Successfully " });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+        console.log(err);
+    }
+});
+
 
 router.post("/owner/forgotEmail", async (req, res) => {
     try {
@@ -538,63 +540,60 @@ router.post("/owner/forgotEmail", async (req, res) => {
                 resetPasswordExpires: Date.now() + 10 * 60 * 1000,
             });
             if (up) {
-                const transporter = nodemailer.createTransport({
-                    service: "gmail",
-                    auth: {
-                        user: `${process.env.EMAIL_ADDRESS}`, // generated ethereal user
-                        pass: `${process.env.EMAIL_PSSWD}`, // generated ethereal password
-                    },
-                });
+                sendEmail({ otp, Email })
 
-
-                const mailOptions = {
-                    from: ` "Recovery Email from BreakIN" <${process.env.EMAIL_ADDRESS}>`,
-                    to: `${Email}`,
-                    subject: `BreakIN: OTP - ${otp} to Reset Password`,
-                    text: "You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n" +
-                        "Please verify the following OTP, or paste this into our application to complete the process within 10 mins of receiving it:\n\n" +
-                        `OTP: BreakIN- ${otp}\n\n` +
-                        `This OTP is valid only upto 10 mins\n\n` +
-                        "If you did not request this, please ignore this email and your password will remain unchanged",
-                };
-
-                console.log("Sending email.....");
-
-                transporter.sendMail(mailOptions, (err, response) => {
-                    if (err) {
-                        console.log("There was an error: ", err);
-                    } else {
-                        console.log("There you Go: ", response);
-                        return res.status(200).json("Recovery email sent");
-                    }
-                });
             } else {
                 console.log("Unable to give token ");
             }
         }
     } catch (err) {
-        console.log(" External err",err);
+        console.log(" External err", err);
     }
 });
+
+router.put("/owner/verifyOTPviaEmail", auth, async (req, res) => {
+    try {
+        const { otp } = req.body;
+        const details = await ownerP.findOne({
+            _id: req.user,
+        });
+        if (generatedOTPs.has(otp, req.user)) {
+            const expirationTime = generatedOTPs.get(otp);
+            const currentTime = Date.now();
+            if (details) {
+                if (expirationTime > currentTime) {
+                    if (details.resetPasswordOTP == otp) {
+                        const data = await details.updateOne({
+                            PreviousPassword: details.Password,
+                            resetPasswordOTP: null,
+                            resetPasswordExpires: null,
+                        })
+                        if (data) {
+                            // console.log('password updated');
+                            res.status(200).json({ msg: "OTP verified" })
+                        } else {
+                            // console.log("Password can't be update")
+                            res.status(403).json("Password can't be update");
+                        }
+                    }
+                    return true;
+                } else {
+                    generatedOTPs.delete(otp);
+                    res.status(400).json({ msg: "We cannot verify the otp" })
+                }
+            } else {
+                res.status(400).json({ msg: "We cannot verify the otp" })
+            }
+        }
+    } catch (error) {
+    }
+})
 
 router.put("/owner/updatePasswordViaEmail", auth, async (req, res) => {
     try {
         // 
         const { Password } = req.body;
 
-        if (generatedOTPs.has(otp, id)) {
-            const expirationTime = generatedOTPs.get(otp);
-            const currentTime = Date.now();
-            if (id == req.user) {
-                if (expirationTime > currentTime) {
-                    return true;
-                } else {
-                    generatedOTPs.delete(otp);
-                }
-            } else {
-                generatedOTPs.delete(otp);
-            }
-        }
 
         const details = await ownerP.findOne({
             _id: req.user,
@@ -667,23 +666,20 @@ router.post("/owner/menuItems", auth, async (req, res) => {
 // Owner List Place
 router.post("/owner/listPlace", auth, upload.single("file"), async (req, res) => {
     try {
-    const { PlaceName, Address, OwnerName } = req.body;
-    const { filename, mimetype } = req.file;
+        const { PlaceName, Address, OwnerName } = req.body;
+        const { filename, mimetype } = req.file;
 
-        if (!PlaceName, !Address, !OwnerName) return res.json({msg:"We can not list a place without improper information."})
+        if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
         const user = new listPlace({
-            PlaceName, Address, OwnerName, document:filename,mimetype:mimetype
+            PlaceName, Address, OwnerName, document: filename, mimetype: mimetype
         });
 
         const savedUser = await user.save();
-        res.status(200).json({savedUser,msg:"Place listed successfully."})
+        res.status(200).json({ savedUser, msg: "Place listed successfully." })
 
     } catch (error) {
-        
+        res.status(500).json({ err: error })
     }
-
-
-
 })
 
 module.exports = router;

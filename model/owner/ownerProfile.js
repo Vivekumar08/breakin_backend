@@ -14,6 +14,9 @@ const ownerProfile = new mongoose.Schema({
         type: String,
         required: true
     },
+    PreviousPassword: {
+        type: [String],
+    },
     PhoneNumber: {
         type: String,
     },
