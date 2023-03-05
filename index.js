@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded(
 
 
 
-app.get("/api/",async(req,res)=>{
+app.get("/",async(req,res)=>{
   res.json("Congratulations BreakIN server made successfully")
 })
 
