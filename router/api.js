@@ -18,7 +18,6 @@ const SuggestPlace = require("../model/user/suggestPlace");
 const HelpUser = require("../model/user/help");
 const FeedBackUser = require("../model/user/feedback");
 const MenuItemOwner = require("../model/owner/menu");
-const nodemailer = require("nodemailer");
 const listPlace = require("../model/owner/listPlace");
 const sendEmail = require("../utils/sendEmail");
 const { generateOTP, isOTPValid } = require("../utils/otpGenerator");
