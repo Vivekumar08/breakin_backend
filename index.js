@@ -13,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.set("view engine", "ejs")
 app.use(bodyParser.urlencoded(
-  { extended: false }
+  { extended: true }
 ))
 
 
