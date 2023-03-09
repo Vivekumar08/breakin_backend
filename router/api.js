@@ -179,11 +179,11 @@ router.post("/user/registerWithNumber", async (req, res) => {
             resetPasswordOTP: otp
         });
         await user.save();
-        const code = sendOTPToSMS({ otp, PhoneNumber }, res);
-        console.log(code)
+        sendOTPToSMS({ otp, PhoneNumber }, res);
+        // console.log(code)
         // const token = jwt.sign({ id: user._id }, process.env.SECRET, { expiresIn: '7d' })
         // res.status(200).json({ token, savedUser })
-        // return res.status(200).json({ message: "Form filled Successfully " });
+        return res.status(200).json({ msg: "Form filled Successfully " });
     } catch (err) {
         res.status(500).json({ error: err.message });
         // console.log(err);
@@ -207,7 +207,7 @@ router.post("/user/forgotEmail", async (req, res) => {
             });
             if (up) {
                 sendEmail({ otp, Email })
-                return res.status(200).json({ msg: "OTP Sent", otp: otp });
+                return res.status(200).json({ msg: "OTP Sent"});
             } else {
                 console.log("Unable to give token ");
             }
@@ -220,18 +220,17 @@ router.post("/user/forgotEmail", async (req, res) => {
 router.put("/user/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;
-        console.log(req.body)
         const details = await userP.findOne({ Email: Email });
-        console.log(details)
         const currentTime = Date.now();
         if (details) {
             if (details.resetPasswordExpires > currentTime) {
                 if (details.resetPasswordOTP === otp) {
                     const data = await details.updateOne({
-                        PreviousPassword: details.Password,
+                        previousPasswd: details.Password,
                         resetPasswordOTP: null,
                         resetPasswordExpires: null,
                     })
+                    console.log(data)
                     if (data) {
                         // console.log('password updated');
                         return res.status(200).json({ msg: "OTP verified" })
@@ -570,7 +569,7 @@ router.post("/owner/forgotEmail", async (req, res) => {
             });
             if (up) {
                 sendEmail({ otp, Email })
-
+                return res.status(200).json({ msg: "OTP Sent"});
             } else {
                 console.log("Unable to give token ");
             }
@@ -584,35 +583,33 @@ router.put("/owner/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;
         const details = await ownerP.findOne({ Email: Email });
-        if (isOTPValid.has(otp, details.id)) {
-            const expirationTime = isOTPValid.get(otp);
-            const currentTime = Date.now();
-            if (details) {
-                if (expirationTime > currentTime) {
-                    if (details.resetPasswordOTP == otp) {
-                        const data = await details.updateOne({
-                            PreviousPassword: details.Password,
-                            resetPasswordOTP: null,
-                            resetPasswordExpires: null,
-                        })
-                        if (data) {
-                            // console.log('password updated');
-                            res.status(200).json({ msg: "OTP verified" })
-                        } else {
-                            // console.log("Password can't be update")
-                            res.status(403).json({ error: "Password can't be update" });
-                        }
+        const currentTime = Date.now();
+        if (details) {
+            if (details.resetPasswordExpires > currentTime) {
+                if (details.resetPasswordOTP === otp) {
+                    const data = await details.updateOne({
+                        previousPasswd: details.Password,
+                        resetPasswordOTP: null,
+                        resetPasswordExpires: null,
+                    })
+                    console.log(data)
+                    if (data) {
+                        // console.log('password updated');
+                        return res.status(200).json({ msg: "OTP verified" })
+                    } else {
+                        // console.log("Password can't be update")
+                        return res.status(403).json({ error: "Password can't be update" });
                     }
-                    return true;
-                } else {
-                    isOTPValid.delete(otp);
-                    res.status(400).json({ error: "We cannot verify the otp" })
                 }
+                return res.status(403).json({ error: "Password can't be update" });
+                // return true;
             } else {
-                res.status(400).json({ error: "We cannot verify the otp" })
+                // isOTPValid.delete(otp);
+                return res.status(400).json({ error: "We cannot verify the otp" })
             }
         }
     } catch (error) {
+        return res.status(500).json({ error: error })
     }
 })
 
@@ -635,7 +632,7 @@ router.put("/owner/updatePasswordViaEmail", async (req, res) => {
             });
             if (data) {
                 // console.log('password updated');
-                res.status(200).json({ message: "password updated" });
+                res.status(200).json({ msg: "password updated" });
             } else {
                 // console.log("Password can't be update")
                 res.status(403).json({ error: "Password can't be update" });
