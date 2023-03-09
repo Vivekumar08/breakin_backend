@@ -2,8 +2,9 @@ const jwt = require('jsonwebtoken');
 
 module.exports = function(req, res, next) {
     try {
+        const token = req.headers.authorization;
         // const token = req.header('x-auth-token');
-        const {token} = req.cookies;
+        // const {token} = req.cookies;
         console.log(token);
 
         if (!token) {

@@ -20,7 +20,7 @@ const FeedBackUser = require("../model/user/feedback");
 const MenuItemOwner = require("../model/owner/menu");
 const listPlace = require("../model/owner/listPlace");
 const sendEmail = require("../utils/sendEmail");
-const { generateOTP, isOTPValid } = require("../utils/otpGenerator");
+const { generateOTP } = require("../utils/otpGenerator");
 const { sendOTPToSMS } = require("../utils/sendSMS");
 
 
