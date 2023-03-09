@@ -221,7 +221,6 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp,Email } = req.body;
         const details = await userP.findOne({Email: Email});
-        console.log(details)
         if (isOTPValid.has(otp, details.id)) {
             const expirationTime = isOTPValid.get(otp);
             const currentTime = Date.now();
@@ -238,19 +237,20 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
                             res.status(200).json({ msg: "OTP verified" })
                         } else {
                             // console.log("Password can't be update")
-                            res.status(403).json("Password can't be update");
+                            res.status(403).json({error:"Password can't be update"});
                         }
                     }
                     return true;
                 } else {
                     isOTPValid.delete(otp);
-                    res.status(400).json({ msg: "We cannot verify the otp" })
+                    res.status(400).json({ error: "We cannot verify the otp" })
                 }
             } else {
-                res.status(400).json({ msg: "We cannot verify the otp" })
+                res.status(400).json({ error: "We cannot verify the otp" })
             }
         }
     } catch (error) {
+        res.status(500).json({error:error})
     }
 })
 
