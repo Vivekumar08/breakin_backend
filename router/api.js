@@ -220,6 +220,7 @@ router.post("/user/forgotEmail", async (req, res) => {
 router.put("/user/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;
+        console.log(req.body)
         const details = await userP.findOne({ Email: Email });
         console.log(details)
         if (isOTPValid.has(otp, details.id)) {
