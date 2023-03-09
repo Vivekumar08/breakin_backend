@@ -23,13 +23,11 @@ const sendEmail = async (options) => {
             "If you did not request this, please ignore this email and your password will remain unchanged",
     };
 
-    console.log("Sending email.....");
-
     transporter.sendMail(mailOptions, (err, response) => {
         if (err) {
             console.log("There was an error: ", err);
         } else {
-            console.log("There you Go: ", response);
+            console.log("There you Go: ");
         }
     });
 };

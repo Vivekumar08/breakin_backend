@@ -234,23 +234,23 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
                         })
                         if (data) {
                             // console.log('password updated');
-                            res.status(200).json({ msg: "OTP verified" })
+                            return res.status(200).json({ msg: "OTP verified" })
                         } else {
                             // console.log("Password can't be update")
-                            res.status(403).json({ error: "Password can't be update" });
+                            return res.status(403).json({ error: "Password can't be update" });
                         }
                     }
                     return true;
                 } else {
                     isOTPValid.delete(otp);
-                    res.status(400).json({ error: "We cannot verify the otp" })
+                    return res.status(400).json({ error: "We cannot verify the otp" })
                 }
             } else {
-                res.status(400).json({ error: "We cannot verify the otp" })
+                return res.status(400).json({ error: "We cannot verify the otp" })
             }
         }
     } catch (error) {
-        res.status(500).json({ error: error })
+        return res.status(500).json({ error: error })
     }
 })
 
