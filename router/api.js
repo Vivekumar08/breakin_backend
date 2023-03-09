@@ -207,7 +207,7 @@ router.post("/user/forgotEmail", async (req, res) => {
             });
             if (up) {
                 sendEmail({ otp, Email })
-                return res.status(200).json({ msg: "OTP Sent" });
+                return res.status(200).json({ msg: "OTP Sent", otp: otp });
             } else {
                 console.log("Unable to give token ");
             }
@@ -219,8 +219,8 @@ router.post("/user/forgotEmail", async (req, res) => {
 
 router.put("/user/verifyOTPviaEmail", async (req, res) => {
     try {
-        const { otp,Email } = req.body;
-        const details = await userP.findOne({Email: Email});
+        const { otp, Email } = req.body;
+        const details = await userP.findOne({ Email: Email });
         if (isOTPValid.has(otp, details.id)) {
             const expirationTime = isOTPValid.get(otp);
             const currentTime = Date.now();
@@ -237,7 +237,7 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
                             res.status(200).json({ msg: "OTP verified" })
                         } else {
                             // console.log("Password can't be update")
-                            res.status(403).json({error:"Password can't be update"});
+                            res.status(403).json({ error: "Password can't be update" });
                         }
                     }
                     return true;
@@ -250,7 +250,7 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
             }
         }
     } catch (error) {
-        res.status(500).json({error:error})
+        res.status(500).json({ error: error })
     }
 })
 
@@ -260,7 +260,7 @@ router.put("/user/updatePasswordViaEmail", auth, async (req, res) => {
         const { Password, Email } = req.body;
 
 
-        const details = await userP.findOne({Email: Email});
+        const details = await userP.findOne({ Email: Email });
         if (details) {
             const salt = await bcrypt.genSalt();
 
@@ -276,11 +276,11 @@ router.put("/user/updatePasswordViaEmail", auth, async (req, res) => {
                 res.status(200).json({ msg: "password updated" });
             } else {
                 // console.log("Password can't be update")
-                res.status(403).json({error:"Password can't be update"});
+                res.status(403).json({ error: "Password can't be update" });
             }
         } else {
             // console.log('no user exists in db to update')
-            res.status(404).json({error:"no user exists in db to update"});
+            res.status(404).json({ error: "no user exists in db to update" });
         }
     } catch (err) {
         console.log("err");
@@ -559,11 +559,11 @@ router.post("/owner/forgotEmail", async (req, res) => {
     try {
         const { Email } = req.body;
         if (!Email) {
-            return res.status(400).json({error:"email require"});
+            return res.status(400).json({ error: "email require" });
         }
         const user = await ownerP.findOne({ Email: Email });
         if (!user) {
-            return res.status(401).json({error:"email not in the database"});
+            return res.status(401).json({ error: "email not in the database" });
         } else {
             const otp = generateOTP(user.id)
             const up = await user.updateOne({
@@ -585,7 +585,7 @@ router.post("/owner/forgotEmail", async (req, res) => {
 router.put("/owner/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;
-        const details = await ownerP.findOne({ Email: Email});
+        const details = await ownerP.findOne({ Email: Email });
         if (isOTPValid.has(otp, details.id)) {
             const expirationTime = isOTPValid.get(otp);
             const currentTime = Date.now();
@@ -602,7 +602,7 @@ router.put("/owner/verifyOTPviaEmail", async (req, res) => {
                             res.status(200).json({ msg: "OTP verified" })
                         } else {
                             // console.log("Password can't be update")
-                            res.status(403).json({error:"Password can't be update"});
+                            res.status(403).json({ error: "Password can't be update" });
                         }
                     }
                     return true;
@@ -618,13 +618,13 @@ router.put("/owner/verifyOTPviaEmail", async (req, res) => {
     }
 })
 
-router.put("/owner/updatePasswordViaEmail",  async (req, res) => {
+router.put("/owner/updatePasswordViaEmail", async (req, res) => {
     try {
         // 
         const { Password, Email } = req.body;
 
 
-        const details = await ownerP.findOne({Email: Email});
+        const details = await ownerP.findOne({ Email: Email });
         if (details) {
             const salt = await bcrypt.genSalt();
 
@@ -640,11 +640,11 @@ router.put("/owner/updatePasswordViaEmail",  async (req, res) => {
                 res.status(200).json({ message: "password updated" });
             } else {
                 // console.log("Password can't be update")
-                res.status(403).json({error:"Password can't be update"});
+                res.status(403).json({ error: "Password can't be update" });
             }
         } else {
             // console.log('no user exists in db to update')
-            res.status(404).json({error:"no user exists in db to update"});
+            res.status(404).json({ error: "no user exists in db to update" });
         }
     } catch (err) {
         console.log("err");
