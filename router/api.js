@@ -239,7 +239,7 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
                         return res.status(403).json({ error: "Password can't be update" });
                     }
                 }
-                return res.status(403).json({ error: "Password can't be update" });
+                return res.status(403).json({ error: "Wrong OTP" });
                 // return true;
             } else {
                 // isOTPValid.delete(otp);
