@@ -227,7 +227,7 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
             const currentTime = Date.now();
             if (details) {
                 if (expirationTime > currentTime) {
-                    if (details.resetPasswordOTP == otp) {
+                    if (details.resetPasswordOTP === otp) {
                         const data = await details.updateOne({
                             PreviousPassword: details.Password,
                             resetPasswordOTP: null,
