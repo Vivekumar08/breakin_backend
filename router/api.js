@@ -223,32 +223,27 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
         console.log(req.body)
         const details = await userP.findOne({ Email: Email });
         console.log(details)
-        if (isOTPValid.has(otp, details.id)) {
-            const expirationTime = isOTPValid.get(otp);
-            const currentTime = Date.now();
-            if (details) {
-                if (expirationTime > currentTime) {
-                    if (details.resetPasswordOTP === otp) {
-                        const data = await details.updateOne({
-                            PreviousPassword: details.Password,
-                            resetPasswordOTP: null,
-                            resetPasswordExpires: null,
-                        })
-                        if (data) {
-                            // console.log('password updated');
-                            return res.status(200).json({ msg: "OTP verified" })
-                        } else {
-                            // console.log("Password can't be update")
-                            return res.status(403).json({ error: "Password can't be update" });
-                        }
+        const currentTime = Date.now();
+        if (details) {
+            if (details.resetPasswordExpires > currentTime) {
+                if (details.resetPasswordOTP === otp) {
+                    const data = await details.updateOne({
+                        PreviousPassword: details.Password,
+                        resetPasswordOTP: null,
+                        resetPasswordExpires: null,
+                    })
+                    if (data) {
+                        // console.log('password updated');
+                        return res.status(200).json({ msg: "OTP verified" })
+                    } else {
+                        // console.log("Password can't be update")
+                        return res.status(403).json({ error: "Password can't be update" });
                     }
-                    return res.status(403).json({ error: "Password can't be update" });
-                    // return true;
-                } else {
-                    isOTPValid.delete(otp);
-                    return res.status(400).json({ error: "We cannot verify the otp" })
                 }
+                return res.status(403).json({ error: "Password can't be update" });
+                // return true;
             } else {
+                // isOTPValid.delete(otp);
                 return res.status(400).json({ error: "We cannot verify the otp" })
             }
         }
@@ -257,7 +252,7 @@ router.put("/user/verifyOTPviaEmail", async (req, res) => {
     }
 })
 
-router.put("/user/updatePasswordViaEmail",  async (req, res) => {
+router.put("/user/updatePasswordViaEmail", async (req, res) => {
     try {
         // 
         const { Password, Email } = req.body;
