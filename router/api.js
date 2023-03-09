@@ -207,13 +207,44 @@ router.post("/user/forgotEmail", async (req, res) => {
             });
             if (up) {
                 sendEmail({ otp, Email })
-                return res.status(200).json({ msg: "OTP Sent"});
+                return res.status(200).json({ msg: "OTP Sent" });
             } else {
                 console.log("Unable to give token ");
             }
         }
     } catch (err) {
         console.log(" External err", err);
+    }
+});
+router.put("/user/resendOTPviaEmail", async (req, res) => {
+    try {
+        const { Email } = req.body;
+        if (!Email) {
+            return res.status(400).json({ error: "email require" });
+        }
+        const user = await userP.findOne({ Email: Email });
+        if (!user) {
+            return res.status(401).json({ error: "email not in the database" });
+        } else {
+            if (user.resetPasswordOTP) {
+                const otp = user.resetPasswordOTP
+                const up = await details.updateOne({
+                    resetPasswordOTP: otp,
+                    resetPasswordExpires: Date.now() + 10 * 60 * 1000,
+                })
+                if (up) {
+                    sendEmail({ otp, Email })
+                    return res.status(200).json({ msg: "OTP Sent" });
+                } else {
+                    res.status(403).json({ error: "Unable to send otp " });
+                }
+            } else {
+                res.status(402).json({ error: "First, generate your OTP" });
+                
+            }
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Server Error" });
     }
 });
 
@@ -527,7 +558,7 @@ router.post("/owner/registerWithEmail", async (req, res) => {
     }
 });
 
-router.post("/user/registerWithNumber", async (req, res) => {
+router.post("/owner/registerWithNumber", async (req, res) => {
     try {
         const salt = await bcrypt.genSalt();
         const { FullName, PhoneNumber } = req.body;;
@@ -535,9 +566,9 @@ router.post("/user/registerWithNumber", async (req, res) => {
         if (!PhoneNumber) {
             return res.status(400).json({ error: "Fill the complete form" });
         }
-        const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
+        const existingUser = await ownerP.findOne({ PhoneNumber: PhoneNumber })
         if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
-        const user = new userP({
+        const user = new ownerP({
             FullName: FullName,
             PhoneNumber
         });
@@ -569,13 +600,45 @@ router.post("/owner/forgotEmail", async (req, res) => {
             });
             if (up) {
                 sendEmail({ otp, Email })
-                return res.status(200).json({ msg: "OTP Sent"});
+                return res.status(200).json({ msg: "OTP Sent" });
             } else {
                 console.log("Unable to give token ");
             }
         }
     } catch (err) {
         console.log(" External err", err);
+    }
+});
+
+router.put("/owner/resendOTPviaEmail", async (req, res) => {
+    try {
+        const { Email } = req.body;
+        if (!Email) {
+            return res.status(400).json({ error: "email require" });
+        }
+        const user = await ownerP.findOne({ Email: Email });
+        if (!user) {
+            return res.status(401).json({ error: "email not in the database" });
+        } else {
+            if (user.resetPasswordOTP) {
+                const otp = user.resetPasswordOTP
+                const up = await details.updateOne({
+                    resetPasswordOTP: otp,
+                    resetPasswordExpires: Date.now() + 10 * 60 * 1000,
+                })
+                if (up) {
+                    sendEmail({ otp, Email })
+                    return res.status(200).json({ msg: "OTP Sent" });
+                } else {
+                    res.status(403).json({ error: "Unable to send otp " });
+                }
+            } else {
+                res.status(402).json({ error: "First, generate your OTP" });
+                
+            }
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Server Error" });
     }
 });
 
