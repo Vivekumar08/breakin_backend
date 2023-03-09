@@ -200,7 +200,7 @@ router.post("/user/forgotEmail", async (req, res) => {
         console.log(user.id)
 
         if (!user) {
-            return res.status(401).json({ error: "email not in the database" });
+            return res.status(400).json({ error: "email not in the database" });
         } else {
             const otp = generateOTP(user.id)
             const up = await user.updateOne({
