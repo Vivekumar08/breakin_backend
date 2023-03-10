@@ -123,7 +123,7 @@ router.post("/tokenIsValid", async (req, res) => {
     }
 });
 
-router.get("/user/getdata", async (req, res) => {
+router.get("/user/getdata",auth, async (req, res) => {
     const details = await userP.findById(req.user);
     res.status(200).json(details);
 });
@@ -328,20 +328,17 @@ router.post("/user/loginWithEmail", async (req, res) => {
         //   const UserLogin = await User.findOne({ FullName: FullName_ })
 
         if (UserLogin) {
-            const isMatch = await bcrypt.compare(Password, UserLogin.Password);
+            const isMatch = bcrypt.compare(Password, UserLogin.Password);
             // console.log(isMatch)
             if (!isMatch) {
-                console.log("Invalid Credentials");
+                // console.log("Invalid Credentials");
                 res.status(400).json({ msg: "Invalid Credentials." });
             } else {
                 const token = jwt.sign({ id: UserLogin._id }, process.env.SECRET, { expiresIn: '30d' })
                 // res.status(200).json({ token, UserLogin });
                 // const token = jwt.sign({id: UserLogin._id},process.env.SECRET)
-                console.log(token)
+                // console.log(token)
                 res.status(200).header("x-auth-token", token).cookie(token).json({ token, UserLogin });
-
-                console.log("Signin Successful");
-                await UserLogin.save();
             }
         } else {
             console.log("Login Failed");
