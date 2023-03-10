@@ -13,8 +13,8 @@ module.exports = function (req, res, next) {
         const decoded = jwt.verify(token, process.env.SECRET, (err) => {
             if (err) return res.status(401).json({ msg: "Token unverified, authorization denied" })
             // console.log(decoded)
-            // req.user = decoded.id;
         });
+        req.user = decoded.id;
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
