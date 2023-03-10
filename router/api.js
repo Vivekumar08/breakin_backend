@@ -363,7 +363,7 @@ router.delete("/user/delete", auth, async (req, res) => {
 // Update User Profile
 router.post("/user/updateProfile", auth, async (req, res) => {
     try {
-        const { Name, Phone, Email, Location } = req.body();
+        const { Name, Phone, Email, Location } = req.body;
         if (!Name, !Phone, !Email, !Location) return res.status(400).json({ msg: "Can not be updated your profile with incomplete information" })
         const data = await userP.findOneAndUpdate({ _id: req.user }, {
             $set: {
@@ -412,7 +412,7 @@ router.post("/user/profilePic", auth, upload.single("file"), async (req, res) =>
 
 // FeedBack User
 router.post('/user/feedbackUser', auth, async (req, res) => {
-    const { Message } = req.body();
+    const { Message } = req.body;
     try {
         if (!Message) {
             res.status(400).json({ msg: "Write a message to give proper feedback." })
@@ -430,7 +430,7 @@ router.post('/user/feedbackUser', auth, async (req, res) => {
 
 // Help User
 router.post('/user/HelpUser', auth, async (req, res) => {
-    const { Name, Email, Message } = req.body();
+    const { Name, Email, Message } = req.body;
     try {
         if (!Name, !Email, !Message) {
             res.status(400).json({ msg: "We won't be able to you if you filled incomplete information" })
@@ -447,7 +447,7 @@ router.post('/user/HelpUser', auth, async (req, res) => {
 
 // Rate Place
 router.post('/user/ratePlace', auth, async (req, res) => {
-    const { OverallRating, Hygiene, Taste, Quality, Ambience, Comment } = req.body();
+    const { OverallRating, Hygiene, Taste, Quality, Ambience, Comment } = req.body;
     try {
         if (!OverallRating, !Hygiene, !Taste, !Quality, !Ambience, !Comment) {
             res.status(400).json({ msg: "You can not rate this place with incomplete information" })
@@ -465,7 +465,7 @@ router.post('/user/ratePlace', auth, async (req, res) => {
 
 // Suggest a Place
 router.post('/user/suggestPlace', auth, async (req, res) => {
-    const { PlaceName, Address, Contact, } = req.body();
+    const { PlaceName, Address, Contact, } = req.body;
     try {
         if (!PlaceName, !Address, !Contact) {
             res.status(400).json({ msg: "You can not suggest a place without complete information" })
@@ -714,7 +714,7 @@ router.delete("/owner/delete", auth, async (req, res) => {
 
 router.post("/owner/menuItems", auth, async (req, res) => {
     try {
-        const { ItemName, Price, Category, Ingredients, isVeg } = req.body()
+        const { ItemName, Price, Category, Ingredients, isVeg } = req.body
         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
         const menuItems = new MenuItemOwner({
             OwnerId: req.user, ItemName, Price, Category, Ingredients, isVeg
@@ -729,7 +729,7 @@ router.post("/owner/menuItems", auth, async (req, res) => {
 
 router.post("/owner/menuItems", auth, async (req, res) => {
     try {
-        const { ItemName, Price, Category, Ingredients, isVeg } = req.body()
+        const { ItemName, Price, Category, Ingredients, isVeg } = req.body
         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
         const menuItems = await MenuItemOwner.findOneAndUpdate({ _id: req.user }, {
             $set: { ItemName: ItemName, Price: Price, Category: Category, Ingredients: Ingredients, isVeg: isVeg }
