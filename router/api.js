@@ -124,6 +124,7 @@ router.post("/tokenIsValid", async (req, res) => {
 });
 
 router.get("/user/getdata",auth, async (req, res) => {
+    console.log(req.user);
     const details = await userP.findById(req.user);
     res.status(200).json(details);
 });
