@@ -228,7 +228,7 @@ router.put("/user/resendOTPviaEmail", async (req, res) => {
         } else {
             if (user.resetPasswordOTP) {
                 const otp = user.resetPasswordOTP
-                const up = await details.updateOne({
+                const up = await user.updateOne({
                     resetPasswordOTP: otp,
                     resetPasswordExpires: Date.now() + 10 * 60 * 1000,
                 })
