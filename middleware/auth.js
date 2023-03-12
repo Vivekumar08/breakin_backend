@@ -10,12 +10,13 @@ module.exports = function (req, res, next) {
         if (!token) {
             return res.status(401).json({ msg: 'Token not found' });
         }
-        const decoded = jwt.verify(token, process.env.SECRET, (err) => {
-            if (err) return res.status(401).json({ msg: "Token unverified, authorization denied" })   
+        jwt.verify(token, process.env.SECRET, (err,user) => {
+            if (err) return res.status(401).json({ msg: "Token unverified, authorization denied" })  
+            console.log(user)
+            req.user = user.id;
+            next();
         });
-        console.log(decoded)
-        req.user = decoded.id;
-        next();
+        
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
             return res.status(401).send({ msg: 'token expired' });
