@@ -9,7 +9,7 @@ const MenuItemOwnerSchema = new mongoose.Schema({
         require: true
     },
     Price: {
-        type: String,
+        type: Number,
         required: true
     },
     Category: {
