@@ -400,7 +400,7 @@ router.post("/user/profilePic", auth, upload.single("file"), async (req, res) =>
         });
         if (data) {
             // console.log(dat)
-            res.status(200).send({msg: "file uploaded successfully."});
+            res.status(200).send({msg: "file uploaded successfully.",filename:filename});
         } else {
             res.status(401).send({error: "Unable to upload CV, No data found"});
         }
