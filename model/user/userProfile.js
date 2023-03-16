@@ -20,6 +20,11 @@ const userProfile = new mongoose.Schema({
     },
     profilePic: {
         type: String,
+        default: null
+    },
+    profilePicMimetype:{
+        type: String,
+        default: null
     },
     previousPictures: {
         type: [String],
