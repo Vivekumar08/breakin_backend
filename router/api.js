@@ -375,9 +375,9 @@ router.post("/user/updateProfile", auth, async (req, res) => {
             },
         })
         if (data) {
-            res.status(200).send("Profile updated successfully.");
+            res.status(200).send({msg: "Profile updated successfully."});
         } else {
-            res.status(401).send("Unable to update, No data found");
+            res.status(401).send({error: "Unable to update, No data found"});
         }
     } catch (error) {
         console.log("server error")
@@ -400,14 +400,14 @@ router.post("/user/profilePic", auth, upload.single("file"), async (req, res) =>
         });
         if (data) {
             // console.log(dat)
-            res.status(200).send("file uploaded successfully.");
+            res.status(200).send({msg: "file uploaded successfully."});
         } else {
-            res.status(401).send("Unable to upload CV, No data found");
+            res.status(401).send({error: "Unable to upload CV, No data found"});
         }
         // console.log(dat)
     } catch (error) {
         console.log(error);
-        res.status(402).send("Error while uploading file. Try again later.");
+        res.status(402).send({error: "Error while uploading file. Try again later."});
     }
 });
 
