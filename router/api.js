@@ -392,10 +392,8 @@ router.post("/user/profilePic", auth, upload.single("file"), async (req, res) =>
         console.log(filename, mimetype)
         const data = await userP.findOneAndUpdate({ _id: req.user }, {
             $set: {
-                "Profile.file_path": {
-                    file_path1: filename,
-                    file_mimetype1: mimetype,
-                },
+                   profilePic: filename,
+                   profilePicMimetype: mimetype
             },
         });
         if (data) {
