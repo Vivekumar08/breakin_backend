@@ -13,6 +13,11 @@ const HelpUserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    userOwner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "USERS",
+        required: true,
+    },
 },
     { timestamps: true }
 )

@@ -2,6 +2,10 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const fileRouter = require('./router/file');
+const userRouter = require('./router/user_api');
+const ownerRouter = require('./router/owner_api');
+const restaurantRouter = require('./router/restaurants');
 
 const app = express();
 
@@ -18,11 +22,13 @@ app.use(bodyParser.urlencoded(
 
 
 
-app.get("/",async(req,res)=>{
+app.get("/", async (req, res) => {
   res.json("Congratulations BreakIN server made successfully")
 })
-
-app.use(require("./router/api"));
+app.use("/", fileRouter)
+app.use("/user/", userRouter)
+app.use("/owner/", ownerRouter)
+app.use("/restaurants/", restaurantRouter)
 
 
 const port = process.env.PORT;

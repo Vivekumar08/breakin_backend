@@ -1,5 +1,3 @@
-
-
 const generatedOTPs = new Map();
 exports.generateOTP = (id) => {
     var otp

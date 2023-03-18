@@ -29,11 +29,16 @@ const RatePlaceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "USERS",
+        required: true,
+    },
 
 },
     { timestamps: true }
 )
 
 
-const RatePlace = mongoose.model('RATEPLACE', RatePlaceSchema);
+const RatePlace = mongoose.model('RATEPLACES', RatePlaceSchema);
 module.exports = RatePlace;

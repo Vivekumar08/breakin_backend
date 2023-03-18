@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const MenuItemOwnerSchema = new mongoose.Schema({
+const MenuItemSchema = new mongoose.Schema({
     OwnerId: {
         type: String
     },
@@ -16,10 +16,10 @@ const MenuItemOwnerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Ingredients: {
+    Ingredients: [{
         type: String,
         required: true
-    },
+    }],
     isVeg: {
         type: Boolean,
     },
@@ -28,5 +28,5 @@ const MenuItemOwnerSchema = new mongoose.Schema({
 )
 
 
-const MenuItemOwner = mongoose.model('MENUITEMS', MenuItemOwnerSchema);
-module.exports = MenuItemOwner;
+const MenuItems = mongoose.model('MENUITEMS', MenuItemSchema);
+module.exports = MenuItems;

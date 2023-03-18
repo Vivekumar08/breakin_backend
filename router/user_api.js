@@ -5,23 +5,38 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
 
-const ownerRouter = express.Router();
-const ownerP = require("../model/owner/ownerProfile");
+const userRouter = express.Router();
+const userP = require("../model/user/userProfile");
+const RatePlace = require("../model/user/ratePlace");
+const SuggestPlace = require("../model/user/suggestPlace");
+const HelpUser = require("../model/user/help");
 const FeedBackUser = require("../model/user/feedback");
 const sendEmail = require("../utils/sendEmail");
 const { generateOTP } = require("../utils/otpGenerator");
 // const { sendOTPToSMS } = require("../utils/sendSMS");
 const upload = require("../utils/bucket");
+const { averageAll } = require("../utils/basicsFunctions");
 
 
-ownerRouter.get("/getdata", auth, async (req, res) => {
+userRouter.get("/get", async (req, res) => {
+    const details = await userP.find();
+    // const arr = []
+    // for (const i of details) { 
+    //     arr.push(i.FullName)
+    // }
+    const arr = averageAll(details, "FullName")
+    res.status(200).json(arr)
+
+});
+
+userRouter.get("/getdata", auth, async (req, res) => {
     console.log(req.user);
-    const details = await ownerP.findById(req.user);
+    const details = await userP.findById(req.user);
     res.status(200).json(details);
 });
 
 
-ownerRouter.post("/registerWithEmail", async (req, res) => {
+userRouter.post("/registerWithEmail", async (req, res) => {
     try {
         const salt = await bcrypt.genSalt();
         const { FullName, Email, Password } = req.body;;
@@ -31,12 +46,12 @@ ownerRouter.post("/registerWithEmail", async (req, res) => {
         }
         if (Password.length < 5) return res.status(400).json({ msg: "The password needs to be at least 5 characters." })
 
-        const existingUser = await ownerP.findOne({ Email: Email })
+        const existingUser = await userP.findOne({ Email: Email })
         if (existingUser) return res.status(400).json({ msg: "An account with this email already exists." })
 
         const hashedPassword = await bcrypt.hash(Password, salt);
 
-        const user = new ownerP({
+        const user = new userP({
             FullName: FullName,
             Email: Email,
             Password: hashedPassword,
@@ -53,18 +68,18 @@ ownerRouter.post("/registerWithEmail", async (req, res) => {
     }
 });
 
-// ownerRouter.post("/registerWithNumber", async (req, res) => {
+// userRouter.post("/registerWithNumber", async (req, res) => {
 //     try {
 //         const { FullName, PhoneNumber } = req.body;;
 
 //         if (!PhoneNumber) {
 //             return res.status(400).json({ error: "Fill the complete form" });
 //         }
-//         const existingUser = await ownerP.findOne({ PhoneNumber: PhoneNumber })
+//         const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
 //         if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
 //         const otp = generateOTP(req.user)
 //         console.log(otp)
-//         const user = new ownerP({
+//         const user = new userP({
 //             FullName: FullName,
 //             PhoneNumber,
 //             resetPasswordOTP: otp
@@ -77,13 +92,13 @@ ownerRouter.post("/registerWithEmail", async (req, res) => {
 //     }
 // });
 
-ownerRouter.post("/forgotEmail", async (req, res) => {
+userRouter.post("/forgotEmail", async (req, res) => {
     try {
         const { Email } = req.body;
         if (!Email) {
             return res.status(400).json({ error: "email require" });
         }
-        const user = await ownerP.findOne({ Email: Email });
+        const user = await userP.findOne({ Email: Email });
         if (!user) {
             return res.status(401).json({ error: "email not in the database" });
         } else {
@@ -103,13 +118,13 @@ ownerRouter.post("/forgotEmail", async (req, res) => {
         console.log(" External err", err);
     }
 });
-ownerRouter.put("/resendOTPviaEmail", async (req, res) => {
+userRouter.put("/resendOTPviaEmail", async (req, res) => {
     try {
         const { Email } = req.body;
         if (!Email) {
             return res.status(400).json({ error: "email require" });
         }
-        const user = await ownerP.findOne({ Email: Email });
+        const user = await userP.findOne({ Email: Email });
         if (!user) {
             return res.status(401).json({ error: "email not in the database" });
         } else {
@@ -135,10 +150,10 @@ ownerRouter.put("/resendOTPviaEmail", async (req, res) => {
     }
 });
 
-ownerRouter.put("/verifyOTPviaEmail", async (req, res) => {
+userRouter.put("/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;
-        const details = await ownerP.findOne({ Email: Email });
+        const details = await userP.findOne({ Email: Email });
         const currentTime = Date.now();
         if (details) {
             if (details.resetPasswordExpires > currentTime) {
@@ -165,13 +180,13 @@ ownerRouter.put("/verifyOTPviaEmail", async (req, res) => {
     }
 })
 
-ownerRouter.put("/updatePasswordViaEmail", async (req, res) => {
+userRouter.put("/updatePasswordViaEmail", async (req, res) => {
     try {
         // 
         const { Password, Email } = req.body;
 
 
-        const details = await ownerP.findOne({ Email: Email });
+        const details = await userP.findOne({ Email: Email });
         if (details) {
             const salt = await bcrypt.genSalt();
 
@@ -194,7 +209,7 @@ ownerRouter.put("/updatePasswordViaEmail", async (req, res) => {
     }
 });
 
-ownerRouter.post("/loginWithEmail", async (req, res) => {
+userRouter.post("/loginWithEmail", async (req, res) => {
     try {
         const { Email, Password } = req.body;
         if (!Email || !Password) {
@@ -203,7 +218,7 @@ ownerRouter.post("/loginWithEmail", async (req, res) => {
                 .json({ error: "Fill the Admin Login Form Properly" });
         }
 
-        const UserLogin = await ownerP.findOne({ Email: Email });
+        const UserLogin = await userP.findOne({ Email: Email });
 
         if (UserLogin) {
             const isMatch = bcrypt.compare(Password, UserLogin.Password);
@@ -223,9 +238,9 @@ ownerRouter.post("/loginWithEmail", async (req, res) => {
 });
 
 
-ownerRouter.delete("/delete", auth, async (req, res) => {
+userRouter.delete("/delete", auth, async (req, res) => {
     try {
-        const delete_user = await ownerP.findByIdAndDelete(req.user);
+        const delete_user = await userP.findByIdAndDelete(req.user);
         res.json(delete_user + "User deleted");
 
     } catch (error) {
@@ -234,16 +249,15 @@ ownerRouter.delete("/delete", auth, async (req, res) => {
 });
 
 // Update User Profile
-ownerRouter.post("/updateProfile", auth, async (req, res) => {
+userRouter.post("/updateProfile", auth, async (req, res) => {
     try {
-        const { Name, Phone, Email, Location } = req.body;
-        if (!Name, !Phone, !Email, !Location) return res.status(400).json({ msg: "Can not be updated your profile with incomplete information" })
-        const data = await ownerP.findOneAndUpdate({ _id: req.user }, {
+        const { Name, Phone, Email } = req.body;
+        if (!Name, !Phone, !Email) return res.status(400).json({ msg: "Can not be updated your profile with incomplete information" })
+        const data = await userP.findOneAndUpdate({ _id: req.user }, {
             $set: {
                 FullName: Name,
                 Email: Email,
                 PhoneNumber: Phone,
-                location: Location
             },
         })
         if (data) {
@@ -258,11 +272,11 @@ ownerRouter.post("/updateProfile", auth, async (req, res) => {
 
 // User Profile Picture
 
-ownerRouter.post("/profilePic", auth, upload.single("file"), async (req, res) => {
+userRouter.post("/profilePic", auth, upload.single("file"), async (req, res) => {
     try {
         const { filename, mimetype } = req.file;
         console.log(filename, mimetype)
-        const data = await ownerP.findOneAndUpdate({ _id: req.user }, {
+        const data = await userP.findOneAndUpdate({ _id: req.user }, {
             $set: {
                 profilePic: filename,
                 profilePicMimetype: mimetype
@@ -279,17 +293,16 @@ ownerRouter.post("/profilePic", auth, upload.single("file"), async (req, res) =>
     }
 });
 
-// FeedBack Owner
-ownerRouter.post('/feedbackUser', auth, async (req, res) => {
+// FeedBack User
+userRouter.post('/feedbackUser', auth, async (req, res) => {
     const { Message } = req.body;
     try {
         if (!Message) {
             res.status(400).json({ msg: "Write a message to give proper feedback." })
         }
-
-        const details = await ownerP.findById(req.user)
+        const details = await userP.findById(req.user)
         const feedbackUser = new FeedBackUser({
-            Message, role: "Owner", userOwner: details
+            Message,  role: "User",userOwner: details
         });
         const savedUser = await feedbackUser.save();
         res.status(200).json(savedUser)
@@ -298,16 +311,16 @@ ownerRouter.post('/feedbackUser', auth, async (req, res) => {
     }
 })
 
-// Help Owner
-ownerRouter.post('/HelpUser', auth, async (req, res) => {
+// Help User
+userRouter.post('/HelpUser', auth, async (req, res) => {
     const { Name, Email, Message } = req.body;
     try {
         if (!Name, !Email, !Message) {
             res.status(400).json({ msg: "We won't be able to you if you filled incomplete information" })
         }
-        const details = await ownerP.findById(req.user)
+        const details = await userP.findById(req.user)
         const help = new HelpUser({
-            Name, Email, Message,  role: "Owner",userOwner: details
+            Name, Email, Message,  role: "User",userOwner: details
         });
         const savedUser = await help.save();
         res.status(200).json(savedUser)
@@ -317,4 +330,22 @@ ownerRouter.post('/HelpUser', auth, async (req, res) => {
 })
 
 
-module.exports = ownerRouter;
+// Suggest a Place
+userRouter.post('/suggestPlace', auth, async (req, res) => {
+    const { PlaceName, Address, Contact, } = req.body;
+    try {
+        if (!PlaceName, !Address, !Contact) {
+            res.status(400).json({ msg: "You can not suggest a place without complete information" })
+        }
+
+        const suggestPlace = new SuggestPlace({
+            PlaceName, Address, Contact
+        });
+        const savedUser = await suggestPlace.save();
+        res.status(200).json(savedUser)
+    } catch (error) {
+        console.log("Server Error")
+    }
+})
+
+module.exports = userRouter;
