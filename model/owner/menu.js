@@ -16,12 +16,16 @@ const MenuItemSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Ingredients: [{
+    Ingredients: {
         type: String,
         required: true
-    }],
+    },
     isVeg: {
         type: Boolean,
+    },
+    isAvailable: {
+        type: Boolean,
+        default:true
     },
 },
     { timestamps: true }

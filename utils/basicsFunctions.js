@@ -9,6 +9,10 @@ exports.averageAll = (details, title) => {
 }
 
 exports.generateRandomId = () => {
+    const id = uuidv4().replace(/-/g, '').slice(0, 14);
+    return id;
+}
+exports.generateRandomFoodPlaceId = () => {
     const id = uuidv4().replace(/-/g, '').slice(0, 12);
     return id;
 }

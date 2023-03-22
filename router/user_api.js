@@ -16,6 +16,7 @@ const { generateOTP } = require("../utils/otpGenerator");
 // const { sendOTPToSMS } = require("../utils/sendSMS");
 const upload = require("../utils/bucket");
 const { averageAll } = require("../utils/basicsFunctions");
+const { sendOTPToSMS } = require("../utils/sendSMS");
 
 
 userRouter.get("/get", async (req, res) => {
@@ -68,29 +69,29 @@ userRouter.post("/registerWithEmail", async (req, res) => {
     }
 });
 
-// userRouter.post("/registerWithNumber", async (req, res) => {
-//     try {
-//         const { FullName, PhoneNumber } = req.body;;
+userRouter.post("/registerWithNumber", async (req, res) => {
+    try {
+        const { FullName, PhoneNumber } = req.body;;
 
-//         if (!PhoneNumber) {
-//             return res.status(400).json({ error: "Fill the complete form" });
-//         }
-//         const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
-//         if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
-//         const otp = generateOTP(req.user)
-//         console.log(otp)
-//         const user = new userP({
-//             FullName: FullName,
-//             PhoneNumber,
-//             resetPasswordOTP: otp
-//         });
-//         await user.save();
-//         sendOTPToSMS({ otp, PhoneNumber }, res);
-//         return res.status(200).json({ msg: "Form filled Successfully " });
-//     } catch (err) {
-//         res.status(500).json({ error: err.message });
-//     }
-// });
+        if (!PhoneNumber) {
+            return res.status(400).json({ error: "Fill the complete form" });
+        }
+        const existingUser = await userP.findOne({ PhoneNumber: PhoneNumber })
+        if (existingUser) return res.status(400).json({ msg: "An account with this phone number already exists." })
+        const otp = generateOTP()
+        console.log(otp)
+        const user = new userP({
+            FullName: FullName,
+            PhoneNumber,
+            resetPasswordOTP: otp
+        });
+        await user.save();
+        sendOTPToSMS( otp, PhoneNumber );
+        return res.status(200).json({ msg: "Form filled Successfully " });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 userRouter.post("/forgotEmail", async (req, res) => {
     try {
@@ -150,6 +151,35 @@ userRouter.put("/resendOTPviaEmail", async (req, res) => {
     }
 });
 
+userRouter.put("/verifyOTPviaNumbaer", async (req, res) => {
+    try {
+        const { otp, PhoneNumber } = req.body;
+        const details = await userP.findOne({ PhoneNumber: PhoneNumber });
+        const currentTime = Date.now();
+        if (details) {
+            if (details.resetPasswordExpires > currentTime) {
+                if (details.resetPasswordOTP === otp) {
+                    const data = await details.updateOne({
+                        previousPasswd: details.Password,
+                        resetPasswordOTP: null,
+                        resetPasswordExpires: null,
+                    })
+                    console.log(data)
+                    if (data) {
+                        return res.status(200).json({ msg: "OTP verified" })
+                    } else {
+                        return res.status(403).json({ error: "Password can't be update" });
+                    }
+                }
+                return res.status(403).json({ error: "Wrong OTP" });
+            } else {
+                return res.status(400).json({ error: "We cannot verify the otp" })
+            }
+        }
+    } catch (error) {
+        return res.status(500).json({ error: error })
+    }
+})
 userRouter.put("/verifyOTPviaEmail", async (req, res) => {
     try {
         const { otp, Email } = req.body;

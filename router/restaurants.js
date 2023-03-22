@@ -11,8 +11,9 @@ const RatePlace = require("../model/user/ratePlace");
 const userP = require("../model/user/userProfile");
 const ownerP = require("../model/owner/ownerProfile");
 const listPlace = require("../model/owner/listPlace");
-const { averageAll, generateRandomId } = require("../utils/basicsFunctions");
+const { averageAll, generateRandomId, generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
 const upload = require("../utils/bucket");
+const foodplace = require("../model/owner/foodPlace");
 
 
 // Rate Place
@@ -35,7 +36,7 @@ restaurantRouter.post('/ratePlace/:id', auth, async (req, res) => {
             OverallRating, Hygiene, Taste, Quality, Ambience, Comment,
             userId: user
         });
-        await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { Reviews: ratePlace } })
+        await foodplace.findOneAndUpdate({ foodPlaceId: req.params.id }, { $push: { Reviews: ratePlace, RatedBy: +1 } })
         const savedUser = await ratePlace.save();
         res.status(200).json(savedUser)
     } catch (error) {
@@ -60,6 +61,23 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
         res.status(500).json({ err: error })
     }
 })
+restaurantRouter.post("/add/foodPlace/:id", auth, upload.single("file"), async (req, res) => {
+    try {
+        const { FoodPlaceName, type } = req.body;
+        const { filename, mimetype } = req.file;
+
+        if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
+        const user = new foodplace({
+            foodPlaceId: generateRandomFoodPlaceId(),FoodPlaceName, type , CoverPhoto: filename, mimetype: mimetype
+        });
+        await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { foodPlace:user } })
+        const savedUser = await user.save();
+        res.status(200).json({ savedUser, msg: "Place listed successfully." })
+
+    } catch (error) {
+        res.status(500).json({ err: error })
+    }
+})
 
 restaurantRouter.post("/menuItems/:id", auth, async (req, res) => {
     try {
@@ -68,7 +86,7 @@ restaurantRouter.post("/menuItems/:id", auth, async (req, res) => {
         const menuItems = new MenuItems({
             OwnerId: req.user, ItemName, Price, Category, Ingredients, isVeg
         });
-        await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { Menu: menuItems } })
+        await foodplace.findOneAndUpdate({ foodPlaceId: req.params.id }, { $push: { Menu: menuItems } })
         const savedUser = await menuItems.save();
         res.status(200).json(savedUser)
     } catch (error) {
@@ -95,7 +113,7 @@ restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
     }
 })
 
-restaurantRouter.delete("/edit/menuItems", auth, async (req, res) => {
+restaurantRouter.delete("/delete/menuItems", auth, async (req, res) => {
     try {
         const { ItemName, Price, Category, Ingredients, isVeg } = req.body
         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })

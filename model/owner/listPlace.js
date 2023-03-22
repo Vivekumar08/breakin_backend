@@ -5,7 +5,6 @@ const ownerPlace = new mongoose.Schema({
     PlaceId: {
         type: String,
         required: true
-        
     },
     PlaceName: {
         type: String,
@@ -27,14 +26,13 @@ const ownerPlace = new mongoose.Schema({
         type: String,
         // required: true
     },
-    Menu: {
-        type: mongoose.Schema.Types.Array,
-        ref: "MENUITEMS",
+    status:{
+        type:String
     },
-    Reviews: {
+    foodPlace:{
         type: mongoose.Schema.Types.Array,
-        ref: "RATEPLACE",
-    },
+        ref: "FOODPLACES",
+    }
 })
 
 

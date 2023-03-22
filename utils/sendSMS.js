@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config({ path: './config.env' })
+
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const verifySid = process.env.TWILIO_VERIFY_SID;
@@ -22,21 +25,21 @@ function verifyTwilio() {
         });
 }
 
-exports.sendOTPToSMS = (options, res) => {
+exports.sendOTPToSMS = (options) => {
     try {
         // verifyTwilio();
         client.messages.create({
-            channel: "sms",
+            // channel: "sms",
             body: "You are receiving this because you (or someone else) have requested the reset of the password for your account.\n\n" +
                 "Please verify the following OTP, or paste this into our application to complete the process within 10 mins of receiving it:\n\n" +
                 `OTP: BreakIN- ${options.otp}\n\n` +
                 `This OTP is valid only upto 10 mins\n\n` +
                 "If you did not request this, please ignore this email and your password will remain unchanged",
             // from: `${process.env.TWILIO_PHONE_NUMBER}`,
-            from: "+917088980706",
-            to: `+919675646087`
-        }).then((message) => console.log(message.sid))
-        console.log('OTP sent to phone number: ' + options.PhoneNumber + message.sid)
+            from: process.env.TWILIO_PHONE_NUMBER,
+            to: `${options.phone}`
+        }).then((message) => console.log(message.sid)).done();
+        // console.log('OTP sent to phone number: ' + options.PhoneNumber)
 
     } catch (error) {
         console.log(error.messages);
