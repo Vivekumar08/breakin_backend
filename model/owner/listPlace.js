@@ -2,10 +2,6 @@ const mongoose = require('mongoose');
 
 const ownerPlace = new mongoose.Schema({
 
-    PlaceId: {
-        type: String,
-        required: true
-    },
     PlaceName: {
         type: String,
         required: true
@@ -36,5 +32,5 @@ const ownerPlace = new mongoose.Schema({
 })
 
 
-const listPlace = mongoose.model('LISTPLACE', ownerPlace);
+const listPlace = mongoose.model('LISTPLACES', ownerPlace);
 module.exports = listPlace;

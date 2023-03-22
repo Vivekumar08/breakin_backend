@@ -39,7 +39,11 @@ const ownerProfile = new mongoose.Schema({
     resetPasswordExpires: {
         type: String,
         default: ""
-    }
+    },
+    PlaceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "LISTPLACES",
+    },
 })
 
 

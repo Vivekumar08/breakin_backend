@@ -51,7 +51,7 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
 
         if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
         const user = new listPlace({
-            PlaceId: generateRandomId(), PlaceName, Address, OwnerName, document: filename, mimetype: mimetype
+            PlaceName, Address, OwnerName, document: filename, mimetype: mimetype
         });
 
         const savedUser = await user.save();
@@ -61,18 +61,24 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
         res.status(500).json({ err: error })
     }
 })
-restaurantRouter.post("/add/foodPlace/:id", auth, upload.single("file"), async (req, res) => {
+restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req, res) => {
     try {
         const { FoodPlaceName, type } = req.body;
         const { filename, mimetype } = req.file;
+        const details = await ownerP.findById(req.user)
+        const placeDetail = await listPlace.find({ _id: details.PlaceId._id })
+        if (placeDetail.status in ["Verified", "Unverified", "Verifying"]) {
 
-        if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
-        const user = new foodplace({
-            foodPlaceId: generateRandomFoodPlaceId(),FoodPlaceName, type , CoverPhoto: filename, mimetype: mimetype
-        });
-        await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { foodPlace:user } })
-        const savedUser = await user.save();
-        res.status(200).json({ savedUser, msg: "Place listed successfully." })
+            if (!FoodPlaceName, !type) return res.json({ msg: "We can not list a place without improper information." })
+            const user = new foodplace({
+                foodPlaceId: generateRandomFoodPlaceId(), FoodPlaceName, type, CoverPhoto: filename, mimetype: mimetype
+            });
+            await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { foodPlace: user } })
+            const savedUser = await user.save();
+            res.status(200).json({ savedUser, msg: "Place listed successfully." })
+        } else {
+            res.status(400).json({ err: "List Place not found." })
+        }
 
     } catch (error) {
         res.status(500).json({ err: error })
@@ -91,7 +97,6 @@ restaurantRouter.post("/menuItems/:id", auth, async (req, res) => {
         res.status(200).json(savedUser)
     } catch (error) {
         console.log("err");
-
     }
 })
 
