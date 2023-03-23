@@ -24,20 +24,16 @@ const FoodPlaceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Landmark: {
-        type: String,
-        // required: true
-    },
     CoverPhoto: {
         type: String,
         required: true
     },
-    Cordinate: [
+    Location: [
         {
-            lat: Number
-        },
-        {
-            lng: Number
+            lat: Number,
+            lng: Number,
+            address: String,
+            landmark: String,
         },
     ],
     mimetype: {
