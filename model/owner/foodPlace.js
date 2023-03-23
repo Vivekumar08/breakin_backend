@@ -20,6 +20,10 @@ const FoodPlaceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    category: {
+        type: String,
+        required: true
+    },
     Landmark: {
         type: String,
         // required: true

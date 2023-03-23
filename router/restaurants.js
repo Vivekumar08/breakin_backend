@@ -100,19 +100,23 @@ restaurantRouter.put("/listPlace/:id", auth, async (req, res) => {
     }
 })
 
+restaurantRouter.get("/foodPlace", auth, async (req, res) => {
+    const details = await ownerP.findById(req.user)
+    const placeDetail = await listPlace.findById(details.PlaceId._id.toString())
+    res.status(200).json({ msg: placeDetail.foodPlace })
+})
 
 
 restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req, res) => {
     try {
-        const { FoodPlaceName, type } = req.body;
+        const { FoodPlaceName, type, category } = req.body;
         const { filename, mimetype } = req.file;
         const details = await ownerP.findById(req.user)
-        const placeDetail = await listPlace.find({ _id: details.PlaceId._id })
-        if (placeDetail.status in ["Verified", "Unverified", "Verifying"]) {
-
-            if (!FoodPlaceName, !type) return res.json({ msg: "We can not list a place without improper information." })
+        const placeDetail = await listPlace.findById(details.PlaceId._id.toString())
+        if (placeDetail.status == "verified") {
+            if (!FoodPlaceName, !type) return res.json({ msg: "We can not list a food place without improper information." })
             const user = new foodplace({
-                foodPlaceId: generateRandomFoodPlaceId(), FoodPlaceName, type, CoverPhoto: filename, mimetype: mimetype
+                foodPlaceId: generateRandomFoodPlaceId(), FoodPlaceName, type, category, CoverPhoto: filename, mimetype: mimetype
             });
             await listPlace.findOneAndUpdate({ PlaceId: req.params.id }, { $push: { foodPlace: user } })
             const savedUser = await user.save();
