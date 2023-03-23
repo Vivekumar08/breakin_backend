@@ -20,7 +20,7 @@ const foodplace = require("../model/owner/foodPlace");
 
 restaurantRouter.get("/review/:id", async (req, res) => {
     const place = await listPlace.find({ PlaceId: req.params.id })
-    // const reviews = await 
+    // const reviews = await
     // let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
     // OverallRating = averageAll(place)
 })
@@ -51,7 +51,7 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
 
         if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
         const user = new listPlace({
-            PlaceName, Address, OwnerName, document: filename, mimetype: mimetype
+            PlaceName, Address, OwnerName, document: filename, mimetype: mimetype, status: "verifying"
         });
         await ownerP.findOneAndUpdate({ _id: req.user }, { $set: { PlaceId: user } })
 
@@ -63,16 +63,14 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
     }
 })
 
-restaurantRouter.get("/listPlace/:id", auth, async (req, res) => {
+restaurantRouter.get("/listPlace/get", auth, async (req, res) => {
     try {
         const user = await ownerP.findById(req.user);
-        const details = await listPlace.findById(user.PlaceId._id.toString())
-        if (req.params.id == "getDocument") {
-            res.status(200).json({ document: details.document })
-        } else if (req.params.id == "getStatus") {
-            res.status(200).json({ status: details.status })
+        const details = await listPlace.findById(user.PlaceId._id.toString());
+        if (details) {
+          res.status(200).json(res.status(200).json(details))
         } else {
-            res.status(400).json({ err: "invalid api configuration" })
+          res.status(401).json({ err: "Place not listed" })
         }
     } catch (error) {
         res.status(500).json({ err: error })
