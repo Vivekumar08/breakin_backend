@@ -53,14 +53,55 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
         const user = new listPlace({
             PlaceName, Address, OwnerName, document: filename, mimetype: mimetype
         });
+        await ownerP.findOneAndUpdate({ _id: req.user }, { $set: { PlaceId: user } })
 
-        const savedUser = await user.save();
-        res.status(200).json({ savedUser, msg: "Place listed successfully." })
+        await user.save();
+        res.status(200).json({ msg: "Place listed successfully." })
 
     } catch (error) {
         res.status(500).json({ err: error })
     }
 })
+
+restaurantRouter.get("/listPlace/:id", auth, async (req, res) => {
+    try {
+        const user = await ownerP.findById(req.user);
+        const details = await listPlace.findById(user.PlaceId._id.toString())
+        if (req.params.id == "getDocument") {
+            res.status(200).json({ document: details.document })
+        } else if (req.params.id == "getStatus") {
+            res.status(200).json({ status: details.status })
+        } else {
+            res.status(400).json({ err: "invalid api configuration" })
+        }
+    } catch (error) {
+        res.status(500).json({ err: error })
+    }
+})
+restaurantRouter.put("/listPlace/:id", auth, async (req, res) => {
+    try {
+        const { status } = req.body
+        const user = await ownerP.findById(req.user);
+        const details = await listPlace.findById(user.PlaceId._id.toString())
+        if (req.params.id == "setStatus") {
+            const arr = ["verified", "unverified", "verifying"]
+            if (arr.includes(status)) {
+                if (details.status == status) return res.status(202).json({ msg: "Already upto date everything." })
+                await details.updateOne({ $set: { status: status } })
+                res.status(200).json({ status: status, msg: "Status Updated Successfully" })
+            } else {
+                res.status(401).json({ err: "Invalid Status Update Request" })
+            }
+        } else {
+            res.status(400).json({ err: "invalid api configuration" })
+        }
+    } catch (error) {
+        res.status(500).json({ err: error })
+    }
+})
+
+
+
 restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req, res) => {
     try {
         const { FoodPlaceName, type } = req.body;

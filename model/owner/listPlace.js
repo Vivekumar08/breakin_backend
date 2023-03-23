@@ -22,10 +22,11 @@ const ownerPlace = new mongoose.Schema({
         type: String,
         // required: true
     },
-    status:{
-        type:String
+    status: {
+        type: String,
+        default: "verifying"
     },
-    foodPlace:{
+    foodPlace: {
         type: mongoose.Schema.Types.Array,
         ref: "FOODPLACES",
     }
