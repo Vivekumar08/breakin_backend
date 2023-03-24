@@ -1,33 +1,37 @@
 const mongoose = require('mongoose');
 
 const RatePlaceSchema = new mongoose.Schema({
-    Name:{
-        type:String,
-        default:"Annonymous"
+    Name: {
+        type: String,
+        default: "Annonymous"
     },
     OverallRating: {
         type: String,
         required: true
     },
     Hygiene: {
-        type: String,
+        type: Number,
         required: true
     },
     Taste: {
-        type: String,
+        type: Number,
         required: true
     },
     Quality: {
-        type: String,
+        type: Number,
         required: true
     },
     Ambience: {
-        type: String,
+        type: Number,
         required: true
     },
     Comment: {
         type: String,
         required: true
+    },
+    foodPlaceId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "FOODPLACES",
     },
     userId: {
         type: mongoose.Schema.Types.ObjectId,

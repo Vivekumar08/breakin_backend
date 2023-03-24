@@ -43,6 +43,7 @@ const ownerProfile = new mongoose.Schema({
     PlaceId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "LISTPLACES",
+        default: null
     },
 })
 

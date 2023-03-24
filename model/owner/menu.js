@@ -1,9 +1,6 @@
 const mongoose = require('mongoose');
 
 const MenuItemSchema = new mongoose.Schema({
-    OwnerId: {
-        type: String
-    },
     ItemName: {
         type: String,
         require: true
@@ -27,6 +24,10 @@ const MenuItemSchema = new mongoose.Schema({
         type: Boolean,
         default:true
     },
+    foodPlace:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "FOODPLACES",
+    }
 },
     { timestamps: true }
 )

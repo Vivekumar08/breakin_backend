@@ -24,22 +24,16 @@ const FoodPlaceSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    Landmark: {
-        type: String,
-        // required: true
-    },
     CoverPhoto: {
         type: String,
         required: true
     },
-    Cordinate: [
-        {
-            lat: Number
-        },
-        {
-            lng: Number
-        },
-    ],
+    Locations: {
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+        address: { type: String, required: true },
+        landmark: { type: String, default: null },
+    },
     mimetype: {
         type: String,
         // required: true
@@ -52,9 +46,9 @@ const FoodPlaceSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    Reviews: {
-        type: mongoose.Schema.Types.Array,
-        ref: "RATEPLACE",
+    Ratings: {
+        type: Number,
+        default: null
     },
 })
 

@@ -26,7 +26,7 @@ const ownerPlace = new mongoose.Schema({
         type: String,
     },
     foodPlace: {
-        type: mongoose.Schema.Types.Array,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "FOODPLACES",
     }
 })
