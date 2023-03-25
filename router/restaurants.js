@@ -53,19 +53,17 @@ restaurantRouter.post("/listPlace", auth, upload.single("file"), async (req, res
         const { filename, mimetype } = req.file;
 
         if (!PlaceName, !Address, !OwnerName) return res.json({ msg: "We can not list a place without improper information." })
-        const user = new listPlace({
-            PlaceName, Address, OwnerName, document: filename, mimetype: mimetype, status: "verifying"
-        });
-
         const owner = await ownerP.findById(req.user)
         if (owner.PlaceId) {
             res.status(400).json({ err: "Place already listed" })
         } else {
+            const user = new listPlace({
+                PlaceName, Address, OwnerName, document: filename, mimetype: mimetype, status: "verifying"
+            });
             await owner.updateOne({ $set: { PlaceId: user } })
+            await user.save();
+            res.status(200).json({ msg: "Place listed successfully." })
         }
-        await user.save();
-        res.status(200).json({ msg: "Place listed successfully." })
-
     } catch (error) {
         res.status(500).json({ err: error })
     }
@@ -121,7 +119,6 @@ restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req,
     try {
         const { FoodPlaceName, type, category, lat, lng, address, landmark } = req.body;
         const { filename, mimetype } = req.file;
-        // res.status(200).json({ msg: "done" })
         const details = await ownerP.findById(req.user)
         const placeDetail = await listPlace.findById(details.PlaceId._id.toString())
         if (placeDetail.status == "verified") {
@@ -155,20 +152,54 @@ restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req,
     }
 })
 
-restaurantRouter.post("/add/menuItems/:id", auth, async (req, res) => {
+restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
     try {
-        const { ItemName, Price, Category, Ingredients, isVeg } = req.body
-        if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
-        const menuItems = new MenuItems({
-            OwnerId: req.user, ItemName, Price, Category, Ingredients, isVeg
-        });
-        await foodplace.findOneAndUpdate({ foodPlaceId: req.params.id }, { $push: { Menu: menuItems } })
-        const savedUser = await menuItems.save();
-        res.status(200).json(savedUser)
+        const details = await ownerP.findById(req.user)
+        if (details.PlaceId) {
+            const placeDetail = await listPlace.findById(details.PlaceId.toString())
+            const foodplaceid = await foodplace.findById(placeDetail.foodPlace)
+            const { ItemName, Price, Category, Ingredients, isVeg, isAvailable } = req.body
+            if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
+            const menuItems = new MenuItems({
+                Category: { Name: Category },
+                "Category.Items": {
+                    ItmeName: ItemName,
+                    Price: Price,
+                    Ingredients: Ingredients,
+                    isVeg: isVeg,
+                    isAvailable: isAvailable
+                },
+                foodPlace: foodplaceid
+            });
+            await foodplaceid.updateOne({ $push: { Menu: menuItems } })
+            const savedUser = await menuItems.save();
+            res.status(200).json({ savedUser })
+        } else {
+            res.status(400).json({ err: "There is no food place here" })
+        }
+        // if(req.params.id == "category"){
+
+        // }else if (req.params.id == "menuItems"){
+
+        // }
     } catch (error) {
-        console.log("err");
+        console.log(error);
     }
 })
+// restaurantRouter.post("/add/menuItems/:id", auth, async (req, res) => {
+//     try {
+//         const { ItemName, Price, Category, Ingredients, isVeg } = req.body
+//         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
+//         const menuItems = new MenuItems({
+//             OwnerId: req.user, ItemName, Price, Category, Ingredients, isVeg
+//         });
+//         await foodplace.findOneAndUpdate({ foodPlaceId: req.params.id }, { $push: { Menu: menuItems } })
+//         const savedUser = await menuItems.save();
+//         res.status(200).json(savedUser)
+//     } catch (error) {
+//         console.log("err");
+//     }
+// })
 
 restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
     try {
