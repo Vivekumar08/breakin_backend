@@ -11,7 +11,7 @@ const RatePlace = require("../model/user/ratePlace");
 const userP = require("../model/user/userProfile");
 const ownerP = require("../model/owner/ownerProfile");
 const listPlace = require("../model/owner/listPlace");
-const { averageAll, generateRandomId, generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
+const { generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
 const upload = require("../utils/bucket");
 const foodplace = require("../model/owner/foodPlace");
 
@@ -110,6 +110,16 @@ restaurantRouter.get("/owner/foodPlace", auth, async (req, res) => {
     if (details.PlaceId) {
         const placeDetail = await listPlace.findById(details.PlaceId.toString())
         res.status(200).json({ msg: placeDetail.foodPlace })
+    } else {
+        res.status(400).json({ err: "There is no food place here" })
+    }
+})
+restaurantRouter.get("/get/foodPlace", auth, async (req, res) => {
+    const details = await ownerP.findById(req.user)
+    if (details.PlaceId) {
+        const placeDetail = await listPlace.findById(details.PlaceId.toString())
+        const foodPlace = await foodplace.findById(placeDetail.foodPlace)
+        res.status(200).json({ msg: foodPlace })
     } else {
         res.status(400).json({ err: "There is no food place here" })
     }
@@ -262,20 +272,28 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
         console.log(error);
     }
 })
-// restaurantRouter.post("/add/menuItems/:id", auth, async (req, res) => {
-//     try {
-//         const { ItemName, Price, Category, Ingredients, isVeg } = req.body
-//         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
-//         const menuItems = new MenuItems({
-//             OwnerId: req.user, ItemName, Price, Category, Ingredients, isVeg
-//         });
-//         await foodplace.findOneAndUpdate({ foodPlaceId: req.params.id }, { $push: { Menu: menuItems } })
-//         const savedUser = await menuItems.save();
-//         res.status(200).json(savedUser)
-//     } catch (error) {
-//         console.log("err");
-//     }
-// })
+
+restaurantRouter.patch("/edit/menuitems/:id", auth.foodplaceVerified, async (req, res) => {
+    try {
+        const { Category, Items } = req.body;
+        const menuItems = await MenuItems.findOne({ foodPlace: req.foodPlace })
+        await menuItems.updateOne({
+            Category: {
+                Name: Category,
+                Items: { _id: req.params.id }
+            }
+        },
+            {
+                $set: {
+                    Category: {
+                        Items: Items
+                    }
+                }
+            })
+    } catch (err) {
+        res.status(500).json("Internal server err")
+    }
+})
 
 restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
     try {
@@ -290,8 +308,7 @@ restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
             res.status(401).send("Unable to update, No data found");
         }
     } catch (error) {
-        console.log("err");
-
+        res.status(500).json("Internal server err")
     }
 })
 

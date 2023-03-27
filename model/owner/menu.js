@@ -1,5 +1,25 @@
 const mongoose = require('mongoose');
-
+const ItemSchema = new mongoose.Schema({
+    ItemName: {
+        type: String,
+        require: true
+    },
+    Price: {
+        type: Number,
+        required: true
+    },
+    Ingredients: {
+        type: String,
+        required: true
+    },
+    isVeg: {
+        type: Boolean,
+    },
+    isAvailable: {
+        type: Boolean,
+        default: true
+    }
+})
 const MenuItemSchema = new mongoose.Schema({
     Category: [{
         Name: {
@@ -7,26 +27,9 @@ const MenuItemSchema = new mongoose.Schema({
             required: true
         },
         Items: [{
-            ItemName: {
-                type: String,
-                require: true
-            },
-            Price: {
-                type: Number,
-                required: true
-            },
-            Ingredients: {
-                type: String,
-                required: true
-            },
-            isVeg: {
-                type: Boolean,
-            },
-            isAvailable: {
-                type: Boolean,
-                default: true
-            }
-        }]
+            type: ItemSchema
+        }
+        ]
     }],
     foodPlace: {
         type: mongoose.Schema.Types.ObjectId,
