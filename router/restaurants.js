@@ -4,6 +4,7 @@ require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
+const foodplaceVerified = require("../middleware/foodplace")
 const restaurantRouter = express.Router();
 
 const MenuItems = require("../model/owner/menu");
@@ -273,7 +274,7 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
     }
 })
 
-restaurantRouter.patch("/edit/menuitems/:id", auth.foodplaceVerified, async (req, res) => {
+restaurantRouter.put("/edit/menuitems/:id", foodplaceVerified, async (req, res) => {
     try {
         const { Category, Items } = req.body;
         const menuItems = await MenuItems.findOne({ foodPlace: req.foodPlace })
@@ -312,18 +313,18 @@ restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
     }
 })
 
-restaurantRouter.delete("/delete/menuItems", auth, async (req, res) => {
+restaurantRouter.delete("/delete/menuItems/:id", foodplaceVerified, async (req, res) => {
     try {
-        const { ItemName, Price, Category, Ingredients, isVeg } = req.body
-        if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
-        const menuItems = await MenuItemOwner.findOneAndUpdate({ _id: req.user }, {
-            $set: { ItemName: ItemName, Price: Price, Category: Category, Ingredients: Ingredients, isVeg: isVeg }
-        })
-        if (menuItems) {
-            res.status(200).send("Menu Items updated successfully.");
-        } else {
-            res.status(401).send("Unable to update, No data found");
-        }
+        const menuItems = await MenuItems.findOne({ foodPlace: req.foodPlace })
+        await menuItems.updateOne({
+            Category: {
+                Name: Category,
+                Items: { _id: req.params.id }
+            }
+        },
+            {
+                $pull: { Category: { Items } }
+            })
     } catch (error) {
         console.log("err");
 
