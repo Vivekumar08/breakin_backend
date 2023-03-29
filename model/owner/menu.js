@@ -1,32 +1,17 @@
 const mongoose = require('mongoose');
-const ItemSchema = new mongoose.Schema({
-    ItemName: {
-        type: String,
-        require: true
-    },
-    Price: {
-        type: Number,
-        required: true
-    },
-    Ingredients: {
-        type: String,
-        required: true
-    },
-    isVeg: {
-        type: Boolean,
-    },
-    isAvailable: {
-        type: Boolean,
-        default: true
-    }
-})
+
 const MenuItemSchema = new mongoose.Schema({
+    foodPlace: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "FOODPLACES",
+    },
     Category: [{
         Name: {
             type: String,
             required: true
         },
-        Items: [{
+        Items: [
+            {
             ItemName: {
                 type: String,
                 require: true
@@ -46,12 +31,9 @@ const MenuItemSchema = new mongoose.Schema({
                 type: Boolean,
                 default: true
             }
-        }]
-    }],
-    foodPlace: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "FOODPLACES",
-    }
+        }
+    ]
+    }]
 },
     { timestamps: true }
 )
