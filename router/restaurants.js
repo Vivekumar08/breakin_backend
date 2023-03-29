@@ -213,7 +213,6 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
             const menuitemDetail = await MenuItems.findOne({ foodPlace: placeDetail.foodPlace })
             if (menuitemDetail) {
                 const det = await MenuItems.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
-                console.log(det)
                 if (det) {
                     const menuItems = await det.updateOne({ Category: { Name: Category } }, {
                         $push: {

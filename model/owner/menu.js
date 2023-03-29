@@ -22,25 +22,31 @@ const ItemSchema = new mongoose.Schema({
 })
 const MenuItemSchema = new mongoose.Schema({
     Category: [{
-        ItemName: {
-            type: String,
-            require: true
-        },
-        Price: {
-            type: Number,
-            required: true
-        },
-        Ingredients: {
+        Name: {
             type: String,
             required: true
         },
-        isVeg: {
-            type: Boolean,
-        },
-        isAvailable: {
-            type: Boolean,
-            default: true
-        }
+        Items: [{
+            ItemName: {
+                type: String,
+                require: true
+            },
+            Price: {
+                type: Number,
+                required: true
+            },
+            Ingredients: {
+                type: String,
+                required: true
+            },
+            isVeg: {
+                type: Boolean,
+            },
+            isAvailable: {
+                type: Boolean,
+                default: true
+            }
+        }]
     }],
     foodPlace: {
         type: mongoose.Schema.Types.ObjectId,
