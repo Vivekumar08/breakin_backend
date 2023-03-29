@@ -39,7 +39,7 @@ const FoodPlaceSchema = new mongoose.Schema({
         // required: true
     },
     Menu: {
-        type: mongoose.Schema.Types.Array,
+        type: mongoose.Schema.Types.ObjectId,
         ref: "MENUITEMS",
     },
     RatedBy: {
