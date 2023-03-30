@@ -15,7 +15,7 @@ const listPlace = require("../model/owner/listPlace");
 const { generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
 const upload = require("../utils/bucket");
 const foodplace = require("../model/owner/foodPlace");
-const MenuItems = require("../model/owner/ItemSchema");
+// const MenuItems = require("../model/owner/ItemSchema");
 const deleteFile = require("../utils/deleteFile");
 
 
@@ -118,19 +118,52 @@ restaurantRouter.put("/listPlace/:id", auth, async (req, res) => {
 })
 
 
-restaurantRouter.get("/get/status/:place/:menuid", foodplaceVerified, async (req, res) => {
-    if (req.params.place == "foodplace") {
-        res.status(200).json(req.foodplace.status)
-    } else if (req.params.place == "listplace") {
-        res.status(200).json(req.place.status)
-    } else if (req.params.place == "menuItems") {
-        const menu = await MenuItems.findById(req.params.menuid)
-        res.status(200).json({ available: menu.isAvailable, veg: menu.isVeg })
-    } else {
-        res.status(400).json("No Status found related to your query")
+restaurantRouter.get("/get/status/:place", auth, async (req, res) => {
+    try {
+        const details = await ownerP.findById(req.user)
+        if (req.params.place == "foodPlace") {
+            const listPlaces = await listPlace.findById(details.PlaceId)
+            const foodPlaces = await foodplace.findById(listPlaces.foodPlace)
+            res.status(200).json({ status: foodPlaces.status })
+        } else if (req.params.place == "listPlace") {
+            const listPlaces = await listPlace.findById(details.PlaceId)
+            res.status(200).json({ status: listPlaces.status })
+        } else if (req.params.place == "menuItems" && req.params.menuid) {
+            // const menu = await MenuCategory.find({ foodPlace: req.place.foodplace })
+            const listPlaces = await listPlace.findById(details.PlaceId)
+            const menuitemsid = await MenuCategory.find({ foodPlace: listPlaces.foodPlace, "Category.Items": { $elemMatch: { _id: req.params.menuid } } })
+            const items = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element._id == req.params.menuid)
+            res.status(200).json({ status: items.isAvailable, veg: items.isVeg })
+        } else {
+            res.status(400).json({ err: "No Status found related to your query" })
+        }
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ err: "Internal server err" })
     }
 })
 
+restaurantRouter.patch("/update/status/menuItems", auth, async (req, res) => {
+    try {
+        const details = await ownerP.findById(req.user)
+        const menuid = req.query.menuid
+        const { status } = req.body
+        // const menu = await MenuCategory.find({ foodPlace: req.place.foodplace })
+        const listPlaces = await listPlace.findById(details.PlaceId)
+        const menuitemsid = await MenuCategory.updateOne({ foodPlace: listPlaces.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } }, { $set: { "Category.$.Items.$[items].isAvailable": status } }, {
+            arrayFilters: [
+                { "items._id": menuid }
+            ]
+        })
+        console.log(menuitemsid)
+        res.status(200).json({ msg: `Status changed successfully` })
+        // const items = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element._id == menuid)
+        // res.status(200).json({ status: items.isAvailable, veg: items.isVeg })
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ err: "Internal server err" })
+    }
+})
 restaurantRouter.get("/owner/foodPlace", auth, async (req, res) => {
     const details = await ownerP.findById(req.user)
     if (details.PlaceId) {
@@ -190,34 +223,55 @@ restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req,
     }
 })
 
-restaurantRouter.post("/:type/coverPhoto", foodplaceVerified, async (req, res) => {
+restaurantRouter.post("/edit/coverPhoto", auth, upload.single("file"), async (req, res) => {
     try {
-        if (req.params.type == "edit") {
-            if (req.foodplace.CoverPhoto) {
-                upload.single('file')
-                deleteFile(req.foodplace.CoverPhoto)
-                await req.foodplace.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
-                res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
-            } else {
-                upload.single('file')
-                await req.foodplace.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
-                res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
-            }
-        } else if (req.params.type == "delete") {
-            if (req.foodplace.CoverPhoto) {
-                upload.single('file')
-                deleteFile(req.foodplace.CoverPhoto)
-                await req.foodplace.updateOne({ $set: { CoverPhoto: null, mimetype: null } })
-                res.status(200).json(`Cover Photo ${req.foodplace.CoverPhoto} deleted successfully`)
-            } else {
-                res.status(200).json(`Cover Photo doesn't exists to delete`)
-            }
+        const details = await ownerP.findById(req.user)
+        const listPlaces = await listPlace.findById(details.PlaceId)
+        const foodPlaces = await foodplace.findById(listPlaces.foodPlace)
+        if (foodPlaces.CoverPhoto) {
+            deleteFile(foodPlaces.CoverPhoto)
+            await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+            res.status(200).json({ msg: `Cover Photo updated successfully` })
+        } else {
+            await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+            res.status(200).json({ msg: `Cover Photo updated successfully` })
         }
     } catch (error) {
-        res.status(500).json("Internal server error")
+        res.status(500).json({ err: "Internal Server Error" })
     }
 
 })
+// restaurantRouter.post("/delete/coverPhoto", auth, async (req, res) => {
+//     try {
+//         const details = await ownerP.findById(req.user)
+//         const listPlaces = await listPlace.findById(details.PlaceId)
+//         const foodPlaces = await foodplace.findById(listPlaces.foodPlace)
+//         if (req.params.type == "edit") {
+//             if (foodPlaces.CoverPhoto) {
+//                 upload.single("file");
+//                 deleteFile(foodPlaces.CoverPhoto)
+//                 await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+//                 res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
+//             } else {
+//                 upload.single('file')
+//                 await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+//                 res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
+//             }
+//         } else if (req.params.type == "delete") {
+//             if (foodPlaces.CoverPhoto) {
+//                 upload.single('file')
+//                 deleteFile(foodPlaces.CoverPhoto)
+//                 await foodPlaces.updateOne({ $set: { CoverPhoto: null, mimetype: null } })
+//                 res.status(200).json(`Cover Photo ${foodPlaces.CoverPhoto} deleted successfully`)
+//             } else {
+//                 res.status(200).json(`Cover Photo doesn't exists to delete`)
+//             }
+//         }
+//     } catch (error) {
+//         res.status(500).json(error)
+//     }
+
+// })
 
 restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
     try {
@@ -249,7 +303,6 @@ restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
                     Category: { Name: Category },
                     foodPlace: foodplaceid
                 });
-                console.log(menuItems)
                 // await foodplaceid.updateOne({ $push: { Menu: menuItems } })
                 await menuItems.save();
                 res.status(200).json({ msg: `${Category} added successfully` })
@@ -277,69 +330,73 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
             if (menuCategory.length != 0) {
                 const det = await MenuCategory.find({
                     foodPlace: placeDetail.foodPlace,
-                    "Category.Name": Category
+                    "Category.Name": Category,
                 })
                 if (det.length != 0) {
-                    const name = await MenuCategory.find({
+                    const menuitems = det[0].Category.find((elem) => elem.Name == Category).Items.find((elem) => elem.ItemName == ItemName)
+                    if (menuitems == null) {
+                        await MenuCategory.findOneAndUpdate({
+                            foodPlace: placeDetail.foodPlace,
+                            "Category.Name": Category
+                        }, {
+                            $push: {
+                                "Category.$.Items": {
+                                    "ItemName": ItemName,
+                                    "Price": Price,
+                                    "Ingredients": Ingredients,
+                                    "isVeg": isVeg,
+                                    "isAvailable": isAvailable,
+                                }
+                            }
+                        })
+                        const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+                        const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                        res.status(200).json({ msg: `${ItemName} added successfully`, id: id.toString() })
+                    } else {
+                        res.status(400).json({ err: `${ItemName} already exists` })
+                    }
+                } else {
+                    await MenuCategory.updateOne({
                         foodPlace: placeDetail.foodPlace,
-                        "Category.Name": Category,
-                        "Category.$.ItemName": ItemName,
-                    })
-                    if (name.length == 0) {
+                    }, {
+                        $push: {
+                            Category: {
+                                Name: Category,
+                                Items: {
+                                    "ItemName": ItemName,
+                                    "Price": Price,
+                                    "Ingredients": Ingredients,
+                                    "isVeg": isVeg,
+                                    "isAvailable": isAvailable,
+                                    // menuId:det._id
+                                }
+                            }
+                        },
+                    });
+                    const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
 
-                        const menuitems = new MenuItems({
+                    const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                    res.status(200).json({ msg: `${ItemName} added successfully`, id: id.toString() })
+                }
+            } else {
+                const menuItems = new MenuCategory({
+                    Category: {
+                        Name: Category,
+                        Items: {
                             "ItemName": ItemName,
                             "Price": Price,
                             "Ingredients": Ingredients,
                             "isVeg": isVeg,
                             "isAvailable": isAvailable,
-                            // menuId:det._id
-                        })
-                        await MenuCategory.updateOne({
-                            foodPlace: placeDetail.foodPlace,
-                            "Category.Name": Category
-                        }, { $push: { "Category.$.Items": menuitems } })
-                        await menuitems.save();
-                        res.status(200).json({ msg: `${ItemName} added successfully`, id: menuitems._id })
-                    } else {
-                        res.status(400).json({ err: `${ItemName} already exits` })
-                    }
-
-                } else {
-                    const menuitems = new MenuItems({
-                        "ItemName": ItemName,
-                        "Price": Price,
-                        "Ingredients": Ingredients,
-                        "isVeg": isVeg,
-                        "isAvailable": isAvailable,
-                        // menuId:det._id
-                    })
-                    await MenuCategory.updateOne({
-                        foodPlace: placeDetail.foodPlace,
-                        "Category.Name": Category
-                    }, { $push: { "Category.$.Items": menuitems } })
-                    // await foodplaceid.updateOne({ $set: { Menu: menuItems } })
-                    res.status(200).json({ msg: `${ItemName} added successfully`, id: menuitems._id })
-                }
-            } else {
-                const menu = new MenuItems({
-                    "ItemName": ItemName,
-                    "Price": Price,
-                    "Ingredients": Ingredients,
-                    "isVeg": isVeg,
-                    "isAvailable": isAvailable
-                })
-                const menuItems = new MenuCategory({
-                    Category: {
-                        Name: Category,
-                        Items: menu.toJSON()
+                        }
                     },
                     foodPlace: foodplaceid
                 });
-                await menu.save();
-                // await foodplaceid.updateOne({ $push: { Menu: menuItems } })
-                const savedUser = await menuItems.save();
-                res.status(200).json({ msg: `${ItemName} added successfully`, id: menu._id })
+                await menuItems.save();
+                const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+
+                const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                res.status(200).json({ msg: `${ItemName} added successfully`, id: id.toString() })
             }
         } else {
             res.status(400).json({ err: "There is no food place here" })
@@ -352,7 +409,7 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
 restaurantRouter.put("/edit/menuitems/:id", foodplaceVerified, async (req, res) => {
     try {
         const { ItemName, Price, Category, Ingredients, isVeg, isAvailable } = req.body;
-        const menuItems = await MenuCategory.findOne({ foodPlace: req.foodPlace })
+        const menuItems = await MenuCategory.findOne({ foodPlace: foodPlaces })
         await menuItems.updateOne({
             Category: {
                 Name: Category,
@@ -395,7 +452,7 @@ restaurantRouter.put("/edit/menuitems/:id", foodplaceVerified, async (req, res) 
 
 restaurantRouter.delete("/delete/menuItems/:id", foodplaceVerified, async (req, res) => {
     try {
-        const menuItems = await MenuCategory.findOne({ foodPlace: req.foodPlace })
+        const menuItems = await MenuCategory.findOne({ foodPlace: foodPlaces })
         await menuItems.updateOne({
             Category: {
                 Name: Category,

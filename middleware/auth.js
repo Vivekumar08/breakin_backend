@@ -11,7 +11,6 @@ module.exports = function auth(req, res, next) {
         }
         jwt.verify(token, process.env.SECRET, (err, user) => {
             if (err) return res.status(401).json({ msg: "Token unverified, authorization denied" })
-            console.log(user)
             req.user = user.id;
             next();
         });

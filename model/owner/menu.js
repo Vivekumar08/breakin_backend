@@ -10,10 +10,27 @@ const MenuItemSchema = new mongoose.Schema({
             type: String,
             required: true
         },
-        Items: {
-            type: mongoose.Schema.Types.Array,
-            ref: "MENUITEMS",
-        }
+        Items: [{
+            ItemName: {
+                type: String,
+                require: true
+            },
+            Price: {
+                type: Number,
+                required: true
+            },
+            Ingredients: {
+                type: String,
+                required: true
+            },
+            isVeg: {
+                type: Boolean,
+            },
+            isAvailable: {
+                type: Boolean,
+                default: true
+            }
+        }]
     }
     ]
 },

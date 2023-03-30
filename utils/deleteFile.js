@@ -4,7 +4,7 @@ let bucket;
 mongoose.connection.on("connected", () => {
     var db = mongoose.connections[0].db;
     bucket = new mongoose.mongo.GridFSBucket(db, {
-        bucketName: "fileBucket"
+        bucketName: "newBucket"
     });
     // console.log("File Bucket");
 });

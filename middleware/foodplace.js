@@ -3,7 +3,7 @@ const foodplace = require('../model/owner/foodPlace');
 const listPlace = require('../model/owner/listPlace');
 const ownerP = require('../model/owner/ownerProfile');
 
-module.exports = function foodplaceVerified (res, req, next) {
+module.exports = function foodplaceVerified(res, req, next) {
     try {
         // const token = req.headers.authorization.split(" ")[1];
         const token = req.headers.authorization;
@@ -22,7 +22,8 @@ module.exports = function foodplaceVerified (res, req, next) {
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
             return res.status(401).send({ msg: 'token expired' });
+        } else {
+            console.log(err)
         }
-        res.status(402).json({ msg: err });
     }
 }
