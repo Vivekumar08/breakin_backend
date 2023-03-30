@@ -147,7 +147,7 @@ restaurantRouter.get("/get/foodPlace", auth, async (req, res) => {
         const foodPlace = await foodplace.findById(placeDetail.foodPlace)
         const menuitems = await MenuCategory.find({ foodPlace: placeDetail.foodPlace.toString() })
         const response = foodPlace.toJSON()
-        response.Menu = menuitems
+        response.Menu = menuitems[0]["Category"]
         res.status(200).json(response)
     } else {
         res.status(400).json({ err: "There is no food place here" })
@@ -226,7 +226,7 @@ restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
             const placeDetail = await listPlace.findById(details.PlaceId.toString())
             const foodplaceid = await foodplace.findById(placeDetail.foodPlace)
             const { Category } = req.body
-            if (!Category) return res.status(400).json({ msg: "Give complete details of the Menu item." })
+            if (!Category) return res.status(400).json({ err: "Give complete details of the Menu item." })
             const menuitemDetail = await MenuCategory.find({
                 foodPlace: placeDetail.foodPlace
             })
@@ -270,7 +270,7 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
             const placeDetail = await listPlace.findById(details.PlaceId.toString())
             const foodplaceid = await foodplace.findById(placeDetail.foodPlace)
             const { ItemName, Price, Category, Ingredients, isVeg, isAvailable } = req.body
-            if (!ItemName, !Price, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
+            if (!ItemName, !Price, !Ingredients, !isVeg) return res.status(400).json({ err: "Give complete details of the Menu item." })
             const menuCategory = await MenuCategory.find({
                 foodPlace: placeDetail.foodPlace
             })
@@ -300,31 +300,26 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
                             "Category.Name": Category
                         }, { $push: { "Category.$.Items": menuitems } })
                         await menuitems.save();
-                        res.status(200).json(`Items added in ${Category}`)
+                        res.status(200).json({ msg: `${ItemName} added successfully`, id: menuitems._id })
                     } else {
-                        res.status(200).json("Item already exits with this name")
+                        res.status(400).json({ err: `${ItemName} already exits` })
                     }
 
                 } else {
-                    const menuItems = await MenuCategory.updateOne({
+                    const menuitems = new MenuItems({
+                        "ItemName": ItemName,
+                        "Price": Price,
+                        "Ingredients": Ingredients,
+                        "isVeg": isVeg,
+                        "isAvailable": isAvailable,
+                        // menuId:det._id
+                    })
+                    await MenuCategory.updateOne({
                         foodPlace: placeDetail.foodPlace,
                         "Category.Name": Category
-                    }, {
-                        $push: {
-                            Category: {
-                                Name: Category,
-                                Items: {
-                                    "ItemName": ItemName,
-                                    "Price": Price,
-                                    "Ingredients": Ingredients,
-                                    "isVeg": isVeg,
-                                    "isAvailable": isAvailable
-                                }
-                            },
-                        }
-                    })
+                    }, { $push: { "Category.$.Items": menuitems } })
                     // await foodplaceid.updateOne({ $set: { Menu: menuItems } })
-                    res.status(200).json("added ln:261")
+                    res.status(200).json({ msg: `${ItemName} added successfully`, id: menuitems._id })
                 }
             } else {
                 const menu = new MenuItems({
@@ -337,14 +332,14 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
                 const menuItems = new MenuCategory({
                     Category: {
                         Name: Category,
-                        Items: menu
+                        Items: menu.toJSON()
                     },
                     foodPlace: foodplaceid
                 });
                 await menu.save();
                 // await foodplaceid.updateOne({ $push: { Menu: menuItems } })
                 const savedUser = await menuItems.save();
-                res.status(200).json({ savedUser })
+                res.status(200).json({ msg: `${ItemName} added successfully`, id: menu._id })
             }
         } else {
             res.status(400).json({ err: "There is no food place here" })
@@ -375,8 +370,9 @@ restaurantRouter.put("/edit/menuitems/:id", foodplaceVerified, async (req, res) 
                     }
                 }
             })
+        res.status(200).json({ msg: `${ItemName} modified successfully` })
     } catch (err) {
-        res.status(500).json("Internal server err")
+        res.status(500).json({ err: "Internal server err" })
     }
 })
 
@@ -409,9 +405,10 @@ restaurantRouter.delete("/delete/menuItems/:id", foodplaceVerified, async (req, 
             {
                 $pull: { "Category.$.Items": { _id: req.params.id } }
             })
-    } catch (error) {
-        console.log("err");
+        res.status(200).json({ msg: `Item Delete successfully` })
 
+    } catch (error) {
+        res.status(500).json({ err: "Internal server err" })
     }
 })
 
