@@ -16,12 +16,22 @@ const { generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
 const upload = require("../utils/bucket");
 const foodplace = require("../model/owner/foodPlace");
 const MenuItems = require("../model/owner/ItemSchema");
+const deleteFile = require("../utils/deleteFile");
 
 
 // Rate Place
 
 restaurantRouter.get("/review/:id", async (req, res) => {
     const place = await listPlace.find({ PlaceId: req.params.id })
+    // const reviews = await
+    // let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
+    // OverallRating = averageAll(place)
+})
+
+restaurantRouter.get("/review/page?", foodplaceVerified, async (req, res) => {
+    let pageNumber = req.params.page
+    const rates = await RatePlace.find({ foodPlaceId: req.place.foodplace }).limit(4).skip(4 * (pageNumber - 1))
+    res.status(200).json(rates)
     // const reviews = await
     // let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
     // OverallRating = averageAll(place)
@@ -107,6 +117,20 @@ restaurantRouter.put("/listPlace/:id", auth, async (req, res) => {
     }
 })
 
+
+restaurantRouter.get("/get/status/:place/:menuid", foodplaceVerified, async (req, res) => {
+    if (req.params.place == "foodplace") {
+        res.status(200).json(req.foodplace.status)
+    } else if (req.params.place == "listplace") {
+        res.status(200).json(req.place.status)
+    } else if (req.params.place == "menuItems") {
+        const menu = await MenuItems.findById(req.params.menuid)
+        res.status(200).json({ available: menu.isAvailable, veg: menu.isVeg })
+    } else {
+        res.status(400).json("No Status found related to your query")
+    }
+})
+
 restaurantRouter.get("/owner/foodPlace", auth, async (req, res) => {
     const details = await ownerP.findById(req.user)
     if (details.PlaceId) {
@@ -118,7 +142,6 @@ restaurantRouter.get("/owner/foodPlace", auth, async (req, res) => {
 })
 restaurantRouter.get("/get/foodPlace", auth, async (req, res) => {
     const details = await ownerP.findById(req.user)
-    console.log(req.user)
     if (details.PlaceId) {
         const placeDetail = await listPlace.findById(details.PlaceId.toString())
         const foodPlace = await foodplace.findById(placeDetail.foodPlace)
@@ -149,7 +172,6 @@ restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req,
                 const foodPlace = await user.save();
                 res.status(200).json({ foodPlace, msg: "Place listed successfully." })
             } else {
-
                 const user = new foodplace({
                     foodPlaceId: generateRandomFoodPlaceId(), FoodPlaceName: FoodPlaceName, type: type, category: category,
                     Locations: { lat, lng, address },
@@ -166,6 +188,35 @@ restaurantRouter.post("/add/foodPlace", auth, upload.single("file"), async (req,
     } catch (error) {
         res.status(500).json({ err: error })
     }
+})
+
+restaurantRouter.post("/:type/coverPhoto", foodplaceVerified, async (req, res) => {
+    try {
+        if (req.params.type == "edit") {
+            if (req.foodplace.CoverPhoto) {
+                upload.single('file')
+                deleteFile(req.foodplace.CoverPhoto)
+                await req.foodplace.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+                res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
+            } else {
+                upload.single('file')
+                await req.foodplace.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
+                res.status(200).json(`Cover Photo ${req.file.filename} updated successfully`)
+            }
+        } else if (req.params.type == "delete") {
+            if (req.foodplace.CoverPhoto) {
+                upload.single('file')
+                deleteFile(req.foodplace.CoverPhoto)
+                await req.foodplace.updateOne({ $set: { CoverPhoto: null, mimetype: null } })
+                res.status(200).json(`Cover Photo ${req.foodplace.CoverPhoto} deleted successfully`)
+            } else {
+                res.status(200).json(`Cover Photo doesn't exists to delete`)
+            }
+        }
+    } catch (error) {
+        res.status(500).json("Internal server error")
+    }
+
 })
 
 restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
@@ -229,21 +280,31 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
                     "Category.Name": Category
                 })
                 if (det.length != 0) {
-                    const menuitems = new MenuItems({
-                        "ItemName": ItemName,
-                        "Price": Price,
-                        "Ingredients": Ingredients,
-                        "isVeg": isVeg,
-                        "isAvailable": isAvailable,
-                        // menuId:det._id
-                    })
-                    await MenuCategory.updateOne({
+                    const name = await MenuCategory.find({
                         foodPlace: placeDetail.foodPlace,
-                        "Category.Name": Category
-                    }, { $push: { "Category.$.Items": menuitems } })
-                    await menuitems.save();
+                        "Category.Name": Category,
+                        "Category.$.ItemName": ItemName,
+                    })
+                    if (name.length == 0) {
 
-                    res.status(200).json("added ln:244")
+                        const menuitems = new MenuItems({
+                            "ItemName": ItemName,
+                            "Price": Price,
+                            "Ingredients": Ingredients,
+                            "isVeg": isVeg,
+                            "isAvailable": isAvailable,
+                            // menuId:det._id
+                        })
+                        await MenuCategory.updateOne({
+                            foodPlace: placeDetail.foodPlace,
+                            "Category.Name": Category
+                        }, { $push: { "Category.$.Items": menuitems } })
+                        await menuitems.save();
+                        res.status(200).json(`Items added in ${Category}`)
+                    } else {
+                        res.status(200).json("Item already exits with this name")
+                    }
+
                 } else {
                     const menuItems = await MenuCategory.updateOne({
                         foodPlace: placeDetail.foodPlace,
@@ -353,5 +414,6 @@ restaurantRouter.delete("/delete/menuItems/:id", foodplaceVerified, async (req, 
 
     }
 })
+
 
 module.exports = restaurantRouter
