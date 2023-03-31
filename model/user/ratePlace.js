@@ -6,7 +6,7 @@ const RatePlaceSchema = new mongoose.Schema({
         default: "Annonymous"
     },
     OverallRating: {
-        type: String,
+        type: Number,
         required: true
     },
     Hygiene: {

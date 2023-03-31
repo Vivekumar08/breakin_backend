@@ -48,7 +48,7 @@ const FoodPlaceSchema = new mongoose.Schema({
     },
     Ratings: {
         type: Number,
-        default: null
+        default: 0
     },
 })
 

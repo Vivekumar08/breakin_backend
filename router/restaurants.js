@@ -1,10 +1,7 @@
 const express = require("express");
 require("dotenv").config();
 
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const auth = require("../middleware/auth")
-const foodplaceVerified = require("../middleware/foodplace")
 const restaurantRouter = express.Router();
 
 const MenuCategory = require("../model/owner/menu");
@@ -15,47 +12,54 @@ const listPlace = require("../model/owner/listPlace");
 const { generateRandomFoodPlaceId } = require("../utils/basicsFunctions");
 const upload = require("../utils/bucket");
 const foodplace = require("../model/owner/foodPlace");
-// const MenuItems = require("../model/owner/ItemSchema");
 const deleteFile = require("../utils/deleteFile");
 
 
 // Rate Place
 
-restaurantRouter.get("/review/:id", async (req, res) => {
-    const place = await listPlace.find({ PlaceId: req.params.id })
-    // const reviews = await
-    // let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
-    // OverallRating = averageAll(place)
+// restaurantRouter.get("/review/:id", async (req, res) => {
+//     const place = await listPlace.find({ PlaceId: req.params.id })
+// const reviews = await
+// let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
+// OverallRating = averageAll(place)
+// })
+
+restaurantRouter.get("/review", auth, async (req, res) => {
+    const details = await ownerP.findById(req.user)
+    const listPlaces = await listPlace.findById(details.PlaceId)
+    let pageNumber = req.query.page
+    let limit = req.query.limit
+    const rates = await RatePlace.find({ foodPlaceId: listPlaces.foodPlace }).skip(limit * (pageNumber - 1)).limit(limit)
+    if (rates.length < limit) {
+        res.status(202).json({ rates, msg: "No More Ratings" })
+    } else {
+        res.status(200).json({ rates })
+    }
 })
 
-restaurantRouter.get("/review/page?", foodplaceVerified, async (req, res) => {
-    let pageNumber = req.params.page
-    const rates = await RatePlace.find({ foodPlaceId: req.place.foodplace }).limit(4).skip(4 * (pageNumber - 1))
-    res.status(200).json(rates)
-    // const reviews = await
-    // let OverallRating, Hygiene, Taste, Quality, Ambience, Comment  ;
-    // OverallRating = averageAll(place)
-})
-
-restaurantRouter.post('/ratePlace/:id', auth, async (req, res) => {
-    const { OverallRating, Hygiene, Taste, Quality, Ambience, Comment } = req.body;
+restaurantRouter.post('/ratePlace', auth, async (req, res) => {
+    const { Hygiene, Taste, Quality, Ambience, Comment } = req.body;
     try {
-        if (!OverallRating, !Hygiene, !Taste, !Quality, !Ambience, !Comment) {
+        if (!Hygiene, !Taste, !Quality, !Ambience, !Comment) {
             res.status(400).json({ msg: "You can not rate this place with incomplete information" })
         }
+        const OverallRating = (Hygiene + Taste + Quality + Ambience) / 4
         const user = await userP.findById(req.user)
         const ratePlace = new RatePlace({
-            OverallRating, Hygiene, Taste, Quality, Ambience, Comment,
-            userId: user
+            OverallRating: OverallRating,
+            Hygiene, Taste, Quality, Ambience, Comment,
+            Name: user.FullName,
+            userId: user,
+            foodPlaceId: req.query.id
         });
-        const foodPlace = await foodplace.findById(req.params.id)
+        const foodPlace = await foodplace.findById(req.query.id)
         foodPlace.RatedBy = foodPlace.RatedBy + 1
-        const Ratings = (foodPlace.Ratings + (Hygiene + Taste + Quality + Ambience) / 4) / 2
-        await foodPlace.update({ $set: { Ratings: Ratings, RatedBy: foodPlace.RatedBy } })
-        const savedUser = await ratePlace.save();
-        res.status(200).json(savedUser)
+        const Ratings = ((foodPlace.Ratings) * (foodPlace.RatedBy - 1) + OverallRating) / foodPlace.RatedBy
+        await foodPlace.updateOne({ $set: { Ratings: Ratings, RatedBy: foodPlace.RatedBy } })
+        await ratePlace.save();
+        res.status(200).json({ msg: `${foodPlace.FoodPlaceName} rated successfully` })
     } catch (error) {
-        console.log("Server Error")
+        res.status(500).json({ err: "Internal Server Error" })
     }
 })
 
@@ -95,16 +99,26 @@ restaurantRouter.get("/listPlace/get", auth, async (req, res) => {
     }
 })
 
-restaurantRouter.put("/listPlace/:id", auth, async (req, res) => {
+restaurantRouter.put("/:place/setStatus", auth, async (req, res) => {
     try {
         const { status } = req.body
         const user = await ownerP.findById(req.user);
         const details = await listPlace.findById(user.PlaceId._id.toString())
-        if (req.params.id == "setStatus") {
+        if (req.params.place == "listPlace") {
             const arr = ["verified", "unverified", "verifying"]
             if (arr.includes(status)) {
                 if (details.status == status) return res.status(202).json({ msg: "Already upto date everything." })
                 await details.updateOne({ $set: { status: status } })
+                res.status(200).json({ status: status, msg: "Status Updated Successfully" })
+            } else {
+                res.status(401).json({ err: "Invalid Status Update Request" })
+            }
+        } else if (req.params.place == "foodPlace") {
+            const foodPlaces = await foodplace.findById(details.foodPlace)
+            const arr = [true, false]
+            if (arr.includes(status)) {
+                if (foodPlaces.status == status) return res.status(202).json({ msg: "Already upto date everything." })
+                await foodPlaces.updateOne({ $set: { status: status } })
                 res.status(200).json({ status: status, msg: "Status Updated Successfully" })
             } else {
                 res.status(401).json({ err: "Invalid Status Update Request" })
@@ -129,7 +143,6 @@ restaurantRouter.get("/get/status/:place", auth, async (req, res) => {
             const listPlaces = await listPlace.findById(details.PlaceId)
             res.status(200).json({ status: listPlaces.status })
         } else if (req.params.place == "menuItems" && req.params.menuid) {
-            // const menu = await MenuCategory.find({ foodPlace: req.place.foodplace })
             const listPlaces = await listPlace.findById(details.PlaceId)
             const menuitemsid = await MenuCategory.find({ foodPlace: listPlaces.foodPlace, "Category.Items": { $elemMatch: { _id: req.params.menuid } } })
             const items = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element._id == req.params.menuid)
@@ -148,17 +161,13 @@ restaurantRouter.patch("/update/status/menuItems", auth, async (req, res) => {
         const details = await ownerP.findById(req.user)
         const menuid = req.query.menuid
         const { status } = req.body
-        // const menu = await MenuCategory.find({ foodPlace: req.place.foodplace })
         const listPlaces = await listPlace.findById(details.PlaceId)
-        const menuitemsid = await MenuCategory.updateOne({ foodPlace: listPlaces.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } }, { $set: { "Category.$.Items.$[items].isAvailable": status } }, {
+        await MenuCategory.updateOne({ foodPlace: listPlaces.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } }, { $set: { "Category.$.Items.$[items].isAvailable": status } }, {
             arrayFilters: [
                 { "items._id": menuid }
             ]
         })
-        console.log(menuitemsid)
         res.status(200).json({ msg: `Status changed successfully` })
-        // const items = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element._id == menuid)
-        // res.status(200).json({ status: items.isAvailable, veg: items.isVeg })
     } catch (err) {
         console.log(err)
         res.status(500).json({ err: "Internal server err" })
@@ -181,6 +190,7 @@ restaurantRouter.get("/get/foodPlace", auth, async (req, res) => {
         const menuitems = await MenuCategory.find({ foodPlace: placeDetail.foodPlace.toString() })
         const response = foodPlace.toJSON()
         response.Menu = menuitems[0]["Category"]
+        if (!response.Menu) response.Menu = []
         res.status(200).json(response)
     } else {
         res.status(400).json({ err: "There is no food place here" })
@@ -231,10 +241,10 @@ restaurantRouter.post("/edit/coverPhoto", auth, upload.single("file"), async (re
         if (foodPlaces.CoverPhoto) {
             deleteFile(foodPlaces.CoverPhoto)
             await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
-            res.status(200).json({ msg: `Cover Photo updated successfully` })
+            res.status(200).json({ msg: `Cover Photo updated successfully`, imageUrl: req.file.filename })
         } else {
             await foodPlaces.updateOne({ $set: { CoverPhoto: req.file.filename, mimetype: req.file.mimetype } })
-            res.status(200).json({ msg: `Cover Photo updated successfully` })
+            res.status(200).json({ msg: `Cover Photo updated successfully`, imageUrl: req.file.filename })
         }
     } catch (error) {
         res.status(500).json({ err: "Internal Server Error" })
@@ -295,7 +305,6 @@ restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
                     await MenuCategory.updateOne({ foodPlace: placeDetail.foodPlace }, {
                         $push: { Category: { Name: Category } }
                     })
-                    // await foodplaceid.updateOne({ $set: { Menu: menuItems } })
                     res.status(200).json({ msg: `${Category} added successfully` })
                 }
             } else {
@@ -303,7 +312,6 @@ restaurantRouter.post("/add/MenuItems/Category", auth, async (req, res) => {
                     Category: { Name: Category },
                     foodPlace: foodplaceid
                 });
-                // await foodplaceid.updateOne({ $push: { Menu: menuItems } })
                 await menuItems.save();
                 res.status(200).json({ msg: `${Category} added successfully` })
             }
@@ -406,63 +414,87 @@ restaurantRouter.post("/add/MenuItems", auth, async (req, res) => {
     }
 })
 
-restaurantRouter.put("/edit/menuitems/:id", foodplaceVerified, async (req, res) => {
+restaurantRouter.put("/edit/menuitems", auth, async (req, res) => {
     try {
+        const menuid = req.query.id
+        const details = await ownerP.findById(req.user)
+        const placeDetail = await listPlace.findById(details.PlaceId.toString())
         const { ItemName, Price, Category, Ingredients, isVeg, isAvailable } = req.body;
-        const menuItems = await MenuCategory.findOne({ foodPlace: foodPlaces })
-        await menuItems.updateOne({
-            Category: {
-                Name: Category,
-                Items: { _id: req.params.id }
-            }
-        },
-            {
-                $set: {
-                    "Category.$.Items": {
-                        "ItemName": ItemName,
-                        "Price": Price,
-                        "Ingredients": Ingredients,
-                        "isVeg": isVeg,
-                        "isAvailable": isAvailable
-                    }
+        const menuCat = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
+        if (menuCat) {
+            const menuItemName = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
+            const CatItemName = menuItemName.Category.find((element) => element.Name == Category).Items.find((elem) => elem.ItemName == ItemName)
+            if (CatItemName) {
+                res.status(400).json({ err: `${ItemName} already exist` })
+            } else {
+                const menuCatsid = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } })
+                const CatName = menuCatsid.Category.find((element) => element.Name == Category).Items.find((elem) => elem._id == menuid)
+                if (CatName) {
+                    await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
+                        {
+                            $set: {
+                                "Category.$.Items.$[items]": {
+                                    ItemName: ItemName,
+                                    Price: Price,
+                                    Ingredients: Ingredients,
+                                    isVeg: isVeg,
+                                    isAvailable: isAvailable
+                                }
+                            }
+                        }, {
+                        arrayFilters: [
+                            { "items._id": menuid }
+                        ]
+                    })
+                    const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+
+                    const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                    res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
+                } else {
+                    await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
+                        {
+                            $pull: { "Category.$.Items": { "_id": menuid } }
+                        })
+                    await MenuCategory.findOneAndUpdate({
+                        foodPlace: placeDetail.foodPlace,
+                        "Category.Name": Category
+                    }, {
+                        $push: {
+                            "Category.$.Items": {
+                                "ItemName": ItemName,
+                                "Price": Price,
+                                "Ingredients": Ingredients,
+                                "isVeg": isVeg,
+                                "isAvailable": isAvailable,
+                            }
+                        }
+                    })
+                    const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+
+                    const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                    res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
                 }
-            })
-        res.status(200).json({ msg: `${ItemName} modified successfully` })
+            }
+        }
+        else {
+            res.status(400).json({ err: "Category doesn't exist" })
+        }
     } catch (err) {
         res.status(500).json({ err: "Internal server err" })
     }
 })
 
-// restaurantRouter.post("/edit/menuItems", auth, async (req, res) => {
-//     try {
-//         const { ItemName, Price, Category, Ingredients, isVeg } = req.body
-//         if (!ItemName, !Price, !Category, !Ingredients, !isVeg) return res.status(400).json({ msg: "Give complete details of the Menu item." })
-//         const menuItems = await MenuItemOwner.findOneAndUpdate({ _id: req.user }, {
-//             $set: { ItemName: ItemName, Price: Price, Category: Category, Ingredients: Ingredients, isVeg: isVeg }
-//         })
-//         if (menuItems) {
-//             res.status(200).send("Menu Items updated successfully.");
-//         } else {
-//             res.status(401).send("Unable to update, No data found");
-//         }
-//     } catch (error) {
-//         res.status(500).json("Internal server err")
-//     }
-// })
 
-restaurantRouter.delete("/delete/menuItems/:id", foodplaceVerified, async (req, res) => {
+restaurantRouter.delete("/delete/menuItems", auth, async (req, res) => {
     try {
-        const menuItems = await MenuCategory.findOne({ foodPlace: foodPlaces })
-        await menuItems.updateOne({
-            Category: {
-                Name: Category,
-                Items: { _id: req.params.id }
-            }
-        },
+        const menuid = req.query.id
+        const details = await ownerP.findById(req.user)
+        const placeDetail = await listPlace.findById(details.PlaceId.toString())
+        await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
             {
-                $pull: { "Category.$.Items": { _id: req.params.id } }
+                $pull: { "Category.$.Items": { "_id": menuid } }
             })
-        res.status(200).json({ msg: `Item Delete successfully` })
+        res.status(200).json({ msg: `Item deleted successfully` })
 
     } catch (error) {
         res.status(500).json({ err: "Internal server err" })
