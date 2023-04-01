@@ -45,14 +45,14 @@ restaurantRouter.post('/ratePlace', auth, async (req, res) => {
         }
         const OverallRating = (Hygiene + Taste + Quality + Ambience) / 4
         const user = await userP.findById(req.user)
+        const foodPlace = await foodplace.findOne({ foodPlaceId: req.query.id })
         const ratePlace = new RatePlace({
             OverallRating: OverallRating,
             Hygiene, Taste, Quality, Ambience, Comment,
             Name: user.FullName,
             userId: user,
-            foodPlaceId: req.query.id
+            foodPlaceId: foodPlace
         });
-        const foodPlace = await foodplace.findOne({ foodPlaceId: req.query.id })
         foodPlace.RatedBy = foodPlace.RatedBy + 1
         const Ratings = ((foodPlace.Ratings) * (foodPlace.RatedBy - 1) + OverallRating) / foodPlace.RatedBy
         await foodPlace.updateOne({ $set: { Ratings: Ratings, RatedBy: foodPlace.RatedBy } })
