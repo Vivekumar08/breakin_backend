@@ -29,7 +29,7 @@ restaurantRouter.get("/review", auth, async (req, res) => {
     const listPlaces = await listPlace.findById(details.PlaceId)
     let pageNumber = req.query.page
     let limit = req.query.limit
-    const rates = await RatePlace.find({ foodPlaceId: listPlaces.foodPlace }).sort({createdAt: -1}).skip(limit * (pageNumber - 1)).limit(limit)
+    const rates = await RatePlace.find({ foodPlaceId: listPlaces.foodPlace }).sort({ createdAt: -1 }).skip(limit * (pageNumber - 1)).limit(limit)
     if (rates.length < limit) {
         res.status(202).json({ rates, msg: "No More Ratings" })
     } else {
@@ -422,57 +422,83 @@ restaurantRouter.put("/edit/menuitems", auth, async (req, res) => {
         const { ItemName, Price, Category, Ingredients, isVeg, isAvailable } = req.body;
         const menuCat = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
         if (menuCat) {
-            const menuItemName = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
-            const CatItemName = menuItemName.Category.find((element) => element.Name == Category).Items.find((elem) => elem.ItemName == ItemName)
-            if (CatItemName) {
-                res.status(400).json({ err: `${ItemName} already exist` })
-            } else {
-                const menuCatsid = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } })
-                const CatName = menuCatsid.Category.find((element) => element.Name == Category).Items.find((elem) => elem._id == menuid)
-                if (CatName) {
-                    await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
-                        {
-                            $set: {
-                                "Category.$.Items.$[items]": {
-                                    ItemName: ItemName,
-                                    Price: Price,
-                                    Ingredients: Ingredients,
-                                    isVeg: isVeg,
-                                    isAvailable: isAvailable
-                                }
-                            }
-                        }, {
-                        arrayFilters: [
-                            { "items._id": menuid }
-                        ]
-                    })
-                    const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
 
-                    const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
-                    res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
-                } else {
-                    await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
-                        {
-                            $pull: { "Category.$.Items": { "_id": menuid } }
-                        })
-                    await MenuCategory.findOneAndUpdate({
-                        foodPlace: placeDetail.foodPlace,
-                        "Category.Name": Category
-                    }, {
-                        $push: {
-                            "Category.$.Items": {
-                                "ItemName": ItemName,
-                                "Price": Price,
-                                "Ingredients": Ingredients,
-                                "isVeg": isVeg,
-                                "isAvailable": isAvailable,
+            const menuItemName = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Name": Category })
+            const prevCatName = menuItemName.Category.find((elem) => elem.Items.find((ele) => ele._id == menuid))
+
+            if (prevCatName.Name == Category) {
+                await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
+                    {
+                        $set: {
+                            "Category.$.Items.$[items]": {
+                                ItemName: ItemName,
+                                Price: Price,
+                                Ingredients: Ingredients,
+                                isVeg: isVeg,
+                                isAvailable: isAvailable
                             }
                         }
-                    })
-                    const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+                    }, {
+                    arrayFilters: [
+                        { "items._id": menuid }
+                    ]
+                })
+                const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
 
-                    const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
-                    res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
+                const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
+            } else {
+                const CatItemName = menuItemName.Category.find((element) => element.Name == Category).Items.find((elem) => elem.ItemName == ItemName)
+                if (CatItemName) {
+                    res.status(400).json({ err: `${ItemName} already exist` })
+                } else {
+                    const menuCatsid = await MenuCategory.findOne({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } })
+                    const CatName = menuCatsid.Category.find((element) => element.Name == Category).Items.find((elem) => elem._id == menuid)
+                    if (CatName) {
+                        await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
+                            {
+                                $set: {
+                                    "Category.$.Items.$[items]": {
+                                        ItemName: ItemName,
+                                        Price: Price,
+                                        Ingredients: Ingredients,
+                                        isVeg: isVeg,
+                                        isAvailable: isAvailable
+                                    }
+                                }
+                            }, {
+                            arrayFilters: [
+                                { "items._id": menuid }
+                            ]
+                        })
+                        const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+
+                        const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                        res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
+                    } else {
+                        await MenuCategory.findOneAndUpdate({ foodPlace: placeDetail.foodPlace, "Category.Items": { $elemMatch: { _id: menuid } } },
+                            {
+                                $pull: { "Category.$.Items": { "_id": menuid } }
+                            })
+                        await MenuCategory.findOneAndUpdate({
+                            foodPlace: placeDetail.foodPlace,
+                            "Category.Name": Category
+                        }, {
+                            $push: {
+                                "Category.$.Items": {
+                                    "ItemName": ItemName,
+                                    "Price": Price,
+                                    "Ingredients": Ingredients,
+                                    "isVeg": isVeg,
+                                    "isAvailable": isAvailable,
+                                }
+                            }
+                        })
+                        const menuitemsid = await MenuCategory.find({ "Category.Items": { $elemMatch: { ItemName: ItemName } } })
+
+                        const id = menuitemsid[0].Category.find((element) => element.Name == Category).Items.find((element) => element.ItemName == ItemName)._id
+                        res.status(200).json({ msg: `${ItemName} modified successfully`, id: id.toString() })
+                    }
                 }
             }
         }
