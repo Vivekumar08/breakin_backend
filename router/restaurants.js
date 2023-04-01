@@ -29,7 +29,7 @@ restaurantRouter.get("/review", auth, async (req, res) => {
     const listPlaces = await listPlace.findById(details.PlaceId)
     let pageNumber = req.query.page
     let limit = req.query.limit
-    const rates = await RatePlace.find({ foodPlaceId: listPlaces.foodPlace }).skip(limit * (pageNumber - 1)).limit(limit)
+    const rates = await RatePlace.find({ foodPlaceId: listPlaces.foodPlace }).sort({createdAt: -1}).skip(limit * (pageNumber - 1)).limit(limit)
     if (rates.length < limit) {
         res.status(202).json({ rates, msg: "No More Ratings" })
     } else {
@@ -52,7 +52,7 @@ restaurantRouter.post('/ratePlace', auth, async (req, res) => {
             userId: user,
             foodPlaceId: req.query.id
         });
-        const foodPlace = await foodplace.findById(req.query.id)
+        const foodPlace = await foodplace.findOne({ foodPlaceId: req.query.id })
         foodPlace.RatedBy = foodPlace.RatedBy + 1
         const Ratings = ((foodPlace.Ratings) * (foodPlace.RatedBy - 1) + OverallRating) / foodPlace.RatedBy
         await foodPlace.updateOne({ $set: { Ratings: Ratings, RatedBy: foodPlace.RatedBy } })
