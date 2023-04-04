@@ -117,7 +117,6 @@ restaurantRouter.put("/:place/setStatus", auth, async (req, res) => {
             const foodPlaces = await foodplace.findById(details.foodPlace)
             const arr = [true, false]
             if (foodPlaces) {
-
                 if (arr.includes(status)) {
                     if (foodPlaces.status == status) return res.status(202).json({ msg: "Already upto date everything." })
                     await foodPlaces.updateOne({ $set: { status: status } })
@@ -126,7 +125,7 @@ restaurantRouter.put("/:place/setStatus", auth, async (req, res) => {
                     res.status(401).json({ err: "Invalid Status Update Request" })
                 }
             } else {
-                res.status(401).json({ err: "Please add FoodPlace First" })
+                res.status(401).json({ err: "Invalid Status Update Request" })
             }
         } else {
             res.status(400).json({ err: "invalid api configuration" })
