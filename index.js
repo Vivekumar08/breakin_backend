@@ -6,6 +6,7 @@ const fileRouter = require('./router/file');
 const userRouter = require('./router/user_api');
 const ownerRouter = require('./router/owner_api');
 const restaurantRouter = require('./router/restaurants');
+const getDataRouter = require('./router/getData');
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use("/", fileRouter)
 app.use("/user/", userRouter)
 app.use("/owner/", ownerRouter)
 app.use("/restaurants/", restaurantRouter)
+app.use("/getData/", getDataRouter)
 
 
 const port = process.env.PORT;
