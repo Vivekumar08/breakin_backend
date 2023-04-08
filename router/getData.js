@@ -56,7 +56,7 @@ getDataRouter.get("/filterSearch", auth, async (req, res) => {
             const distArr = []
             const sortArr = [];
             for (var key of food) {
-                const dist = isWithinBoundary(lat, lng, key.Locations.lat, key.Locations.lng)
+                const dist = isWithinBoundary(lat, lng, key.Locations.lat, key.Locations.lng, 5)
                 if (dist) {
                     distArr.push(dist)
                     arr.push(key)
@@ -74,6 +74,25 @@ getDataRouter.get("/filterSearch", auth, async (req, res) => {
         res.status(500).json(err)
     }
 })
+getDataRouter.get("/foodPlace", auth, async (req, res) => {
+    try {
+        const det = await userP.findById(req.user)
+        if (det) {
+            const foodPlaceId = req.query.foodPlaceId
+            const foodPlace = await foodplace.findOne({ foodPlaceId: foodPlaceId })
+            const menuitems = await MenuCategory.find({ foodPlace: placeDetail.foodPlace.toString() })
+            const response = foodPlace.toJSON()
+            response.Menu = menuitems[0]["Category"]
+            if (!response.Menu) response.Menu = []
+            res.status(200).json(response)
+        } else {
+            res.status(400).json({ err: "There is no food place here" })
+        }
+    } catch (err) {
+        console.log(err)
+        res.status(500).json(err)
+    }
+})
 getDataRouter.get("/Search", auth, async (req, res) => {
     try {
         const det = await userP.findById(req.user)
@@ -85,7 +104,7 @@ getDataRouter.get("/Search", auth, async (req, res) => {
             const arrFoodPlace = []
             const arrItemName = []
             for (var key of food) {
-                arrFoodPlace.push(key.FoodPlaceName)
+                arrFoodPlace.push({ FoodPlaceName: key.FoodPlaceName, foodPlaceId: key.foodPlaceId })
             }
             for (var name of item) {
                 for (var itm of name.Category) {
