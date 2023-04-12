@@ -33,9 +33,10 @@ function distance(lat1, lon1, lat2, lon2) {
     return d;
 }
 
-exports.isWithinBoundary = (centerLat, centerLon, pointLat, pointLon,range=1) => {
+exports.isWithinBoundary = (centerLat, centerLon, pointLat, pointLon, range = 1) => {
     const d = distance(centerLat, centerLon, pointLat, pointLon);
-    if(d <= range){
+    console.log(d)
+    if (d <= range) {
         return d;
     }; // Check if distance is less than or equal to 1 km
 }

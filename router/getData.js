@@ -22,6 +22,7 @@ getDataRouter.get("/NearestHotspot", auth, async (req, res) => {
             const lat = req.query.lat
             const lng = req.query.lng
             const food = await foodplace.find()
+            console.log(food)
             const arr = []
             const distArr = []
             const sortArr = [];
@@ -52,6 +53,7 @@ getDataRouter.get("/filterSearch", auth, async (req, res) => {
             const lng = req.query.lng
             const cat = req.query.cat
             const food = await foodplace.find({ category: cat })
+            console.log(food)
             const arr = []
             const distArr = []
             const sortArr = [];
