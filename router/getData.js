@@ -113,8 +113,8 @@ getDataRouter.get("/Search", auth, async (req, res) => {
                     for (var tems of itm.Items) {
                         if (regex.exec(tems.ItemName)) {
                             const foodid = await foodplace.findById(name.foodPlace)
-                            arrItem[foodid.foodPlaceId] = tems.ItemName
-                            arrItemName.push({id:foodid.foodPlaceId,name: tems.ItemName})
+                            arrItem[tems.ItemName] = foodid.foodPlaceId
+                            arrItemName.push(arrItem)
                         }
                     }
                 }
