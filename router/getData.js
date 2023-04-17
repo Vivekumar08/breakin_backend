@@ -7,12 +7,8 @@ const getDataRouter = express.Router();
 const MenuCategory = require("../model/owner/menu");
 const RatePlace = require("../model/user/ratePlace");
 const userP = require("../model/user/userProfile");
-const ownerP = require("../model/owner/ownerProfile");
-const listPlace = require("../model/owner/listPlace");
-const { generateRandomFoodPlaceId, isWithinBoundary } = require("../utils/basicsFunctions");
-const upload = require("../utils/bucket");
+const { isWithinBoundary } = require("../utils/basicsFunctions");
 const foodplace = require("../model/owner/foodPlace");
-const deleteFile = require("../utils/deleteFile");
 
 
 getDataRouter.get("/NearestHotspot", auth, async (req, res) => {
@@ -81,9 +77,9 @@ getDataRouter.get("/foodPlace", auth, async (req, res) => {
         const det = await userP.findById(req.user)
         if (det) {
             const foodPlaceId = req.query.foodPlaceId
-            const foodPlace = await foodplace.findOne({ foodPlaceId: foodPlaceId })
-            const menuitems = await MenuCategory.find({ foodPlace: placeDetail.foodPlace.toString() })
-            const response = foodPlace.toJSON()
+            const placeDetail = await foodplace.findOne({ foodPlaceId: foodPlaceId })
+            const menuitems = await MenuCategory.find({ foodPlace: placeDetail._id })
+            const response = placeDetail.toJSON()
             response.Menu = menuitems[0]["Category"]
             if (!response.Menu) response.Menu = []
             res.status(200).json(response)
@@ -102,22 +98,29 @@ getDataRouter.get("/Search", auth, async (req, res) => {
             const word = req.query.word
             const regex = new RegExp(word, "i");
             const food = await foodplace.find({ FoodPlaceName: { $regex: regex } })
-            const item = await MenuCategory.find({ "Category.Items.ItemName": { $regex: regex } }, { "Category.Items.ItemName": 1, "_id": 0 })
+            const item = await MenuCategory.find({ "Category.Items.ItemName": { $regex: regex } }, { "foodPlace": 1, "Category.Items.ItemName": 1, "_id": 0 })
+            const arrFood = {}
             const arrFoodPlace = []
+            const arrItem = {}
             const arrItemName = []
             for (var key of food) {
-                arrFoodPlace.push({ FoodPlaceName: key.FoodPlaceName, foodPlaceId: key.foodPlaceId })
+                // arrFoodPlace.push({ FoodPlaceName: key.FoodPlaceName, foodPlaceId: key.foodPlaceId })
+                arrFood[key.foodPlaceId] = key.FoodPlaceName
+                arrFoodPlace.push(arrFood)
             }
             for (var name of item) {
                 for (var itm of name.Category) {
                     for (var tems of itm.Items) {
                         if (regex.exec(tems.ItemName)) {
-                            arrItemName.push(tems.ItemName)
+                            const foodid = await foodplace.findById(name.foodPlace)
+                            arrItem[foodid.foodPlaceId] = tems.ItemName
+                            arrItemName.push({id:foodid.foodPlaceId,name: tems.ItemName})
                         }
                     }
                 }
-                break
+                // break
             }
+
             if (arrFoodPlace.length > 0 && arrItemName.length > 0) {
                 res.status(200).json({
                     foodplaces: [...new Set(arrFoodPlace)],
@@ -129,7 +132,7 @@ getDataRouter.get("/Search", auth, async (req, res) => {
                 })
             } else if (arrItemName.length > 0) {
                 res.status(200).json({
-                    foodplaces: [...new Set(arrItemName)],
+                    foodItems: arrItemName,
                 })
             } else {
                 res.status(400).json({ err: "Nothing is found" })
