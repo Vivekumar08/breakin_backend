@@ -80,9 +80,13 @@ getDataRouter.get("/foodPlace", auth, async (req, res) => {
             const placeDetail = await foodplace.findOne({ foodPlaceId: foodPlaceId })
             const menuitems = await MenuCategory.find({ foodPlace: placeDetail._id })
             const response = placeDetail.toJSON()
-            response.Menu = menuitems[0]["Category"]
-            if (!response.Menu) response.Menu = []
-            res.status(200).json(response)
+            if (menuitems.length > 0) {
+                response.Menu = menuitems[0]["Category"]
+                if (!response.Menu) response.Menu = []
+                res.status(200).json(response)
+            } else {
+                res.status(200).json(response)
+            }
         } else {
             res.status(400).json({ err: "There is no food place here" })
         }
@@ -99,40 +103,43 @@ getDataRouter.get("/Search", auth, async (req, res) => {
             const regex = new RegExp(word, "i");
             const food = await foodplace.find({ FoodPlaceName: { $regex: regex } })
             const item = await MenuCategory.find({ "Category.Items.ItemName": { $regex: regex } }, { "foodPlace": 1, "Category.Items.ItemName": 1, "_id": 0 })
-            const arrFood = {}
-            const arrFoodPlace = []
-            const arrItem = {}
-            const arrItemName = []
+            const arrFood = new Map()
+            // const arrFoodPlace = []
+            const arrItem = new Map()
+            // const arrItemName = []
             for (var key of food) {
                 // arrFoodPlace.push({ FoodPlaceName: key.FoodPlaceName, foodPlaceId: key.foodPlaceId })
-                arrFood[key.foodPlaceId] = key.FoodPlaceName
-                arrFoodPlace.push(arrFood)
+                // arrFood[key.foodPlaceId] = key.FoodPlaceName
+                arrFood.set(key.foodPlaceId, key.FoodPlaceName)
+                // arrFoodPlace.push(arrFood)
             }
             for (var name of item) {
+                const foodid = await foodplace.findById(name.foodPlace)
                 for (var itm of name.Category) {
+                    if (arrItem.has(foodid.foodPlaceId)) break
                     for (var tems of itm.Items) {
+                        if (arrItem.has(foodid.foodPlaceId)) break
                         if (regex.exec(tems.ItemName)) {
-                            const foodid = await foodplace.findById(name.foodPlace)
-                            arrItem[tems.ItemName] = foodid.foodPlaceId
-                            arrItemName.push(arrItem)
+                            arrItem.set(foodid.foodPlaceId, tems.ItemName)
+                            // arrItemName.push(arrItem)
+                            // arrItemName.push({ id: foodid.foodPlaceId, Name: tems.ItemName })
                         }
                     }
                 }
-                // break
             }
-
-            if (arrFoodPlace.length > 0 && arrItemName.length > 0) {
+            if (arrFood.size > 0 && arrItem.size > 0) {
                 res.status(200).json({
-                    foodplaces: [...new Set(arrFoodPlace)],
-                    ItemNames: [...new Set(arrItemName)]
+                    foodplace: Object.fromEntries(arrFood),
+                    foodItems: Object.fromEntries(arrItem),
                 })
-            } else if (arrFoodPlace.length > 0) {
+            } else if (arrFood.size > 0) {
                 res.status(200).json({
-                    foodplaces: [...new Set(arrFoodPlace)],
+                    foodplace: Object.fromEntries(arrFood),
                 })
-            } else if (arrItemName.length > 0) {
+            } else if (arrItem.size > 0) {
                 res.status(200).json({
-                    foodItems: arrItemName,
+                    // foodItems: arrItem,
+                    foodItems: Object.fromEntries(arrItem),
                 })
             } else {
                 res.status(400).json({ err: "Nothing is found" })
